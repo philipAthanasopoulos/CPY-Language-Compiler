@@ -24,6 +24,10 @@ class Lex:
     
     def nextToken(self) :
         token = self.fileToRead.read(1)
+        words = ['main', 'def' , '#def' , '#int' , 'global' , 'if' , 'elif' 
+                 , 'else' , 'while' , 'print' , 'return' , 'input' , 'int' , 'and' , 'or' , 'not']
+
+        word = ''
 
         if not token:
             return None
@@ -60,10 +64,24 @@ class Lex:
             self.token = Token(REL_OP, token, self.currentLine)
             self.tokenList.append(self.token)
             return self.token
-        if token.isalpha():
-            self.token = Token(ID_KW, token, self.currentLine)
+        if token == '#':
+            self.token = Token(COMMENT_START, token, self.currentLine)
             self.tokenList.append(self.token)
             return self.token
+        if token.isalpha():
+            #self.token = Token(ID_KW, token, self.currentLine)
+            last_token  = self.token
+            
+            if last_token.family is ID_KW:
+                word = last_token.recognizedString + token
+                self.token = Token(ID_KW, word, self.currentLine)
+                self.tokenList.pop()
+                self.tokenList.append(self.token)
+                return self.nextToken()
+            else:
+                self.token = Token(ID_KW, token, self.currentLine)
+                self.tokenList.append(self.token)
+                return self.token
         else:
             return self.nextToken()
     
@@ -76,6 +94,7 @@ GRP_SMBL = 'group symbol'
 DLMTR = 'delimiter'
 ASGN = 'assignment'
 REL_OP = 'rel operator'
+COMMENT_START = 'comment start'
 
 class Token:
     def __init__(self, family, recognizedString, lineNumber) -> None:
@@ -85,6 +104,6 @@ class Token:
 
     def __str__(self) -> str:
         return self.recognizedString + "   "+ "family: " + '"' + self.family + '"' + " line: " + str(self.lineNumber)
-lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
+lex = Lex(r'C:\Users\GiannisB\Desktop\Metafrastes\test.cpy')
 lex.readFile()
 lex.printTokenList()
