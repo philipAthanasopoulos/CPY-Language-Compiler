@@ -1,6 +1,21 @@
 #FILIPPOS ATHANASOPULOS ANTYRAS 5113
 #IOANNIS MPOUZAS 5025
 
+NUMBERS = '0123456789'
+NUM = 'number'
+ID_KW = 'identifier or keyword'
+ADD_OP = 'add operator'
+MUL_OP = 'mul operator'
+GRP_SMBL = 'group symbol'
+DLMTR = 'delimiter'
+ASGN = 'assignment'
+REL_OP = 'rel operator'
+COMMENT = 'comment'
+EMPTY = 'empty'
+NL = 'new line'
+HSTG = 'hashtag'
+
+
 class Lex:
     def __init__(self, fileName) -> None:
         self.currentLine = 1
@@ -27,15 +42,15 @@ class Lex:
         words = ['main', 'def' , '#def' , '#int' , 'global' , 'if' , 'elif' 
                  , 'else' , 'while' , 'print' , 'return' , 'input' , 'int' , 'and' , 'or' , 'not']
 
-        word = ''
-
         if not token:
             return None
         if token == '\n':
+            self.token = Token(NL, "\\"+"n", self.currentLine)
+            self.tokenList.append(self.token)
             self.currentLine += 1
             return self.nextToken()
         if token == ' ':
-            return self.nextToken()
+            self.token = Token(EMPTY, token, self.currentLine)
         if token in NUMBERS:
             self.token = Token(NUM, token, self.currentLine)
             self.tokenList.append(self.token)
@@ -65,13 +80,19 @@ class Lex:
             self.tokenList.append(self.token)
             return self.token
         if token == '#':
-            self.token = Token(COMMENT_START, token, self.currentLine)
-            self.tokenList.append(self.token)
-            return self.token
-        if token.isalpha():
-            #self.token = Token(ID_KW, token, self.currentLine)
             last_token  = self.token
-            
+            if last_token.family is HSTG:
+                word = last_token.recognizedString + token
+                self.token = Token(COMMENT, word, self.currentLine)
+                self.tokenList.pop()
+                self.tokenList.append(self.token)
+                return self.nextToken()
+            else:
+                self.token = Token(HSTG, token, self.currentLine)
+                self.tokenList.append(self.token)
+                return self.token
+        if token.isalpha():
+            last_token  = self.token
             if last_token.family is ID_KW:
                 word = last_token.recognizedString + token
                 self.token = Token(ID_KW, word, self.currentLine)
@@ -85,16 +106,6 @@ class Lex:
         else:
             return self.nextToken()
     
-NUMBERS = '0123456789'
-NUM = 'number'
-ID_KW = 'identifier or keyword'
-ADD_OP = 'add operator'
-MUL_OP = 'mul operator'
-GRP_SMBL = 'group symbol'
-DLMTR = 'delimiter'
-ASGN = 'assignment'
-REL_OP = 'rel operator'
-COMMENT_START = 'comment start'
 
 class Token:
     def __init__(self, family, recognizedString, lineNumber) -> None:
@@ -103,7 +114,45 @@ class Token:
         self.lineNumber = lineNumber
 
     def __str__(self) -> str:
-        return self.recognizedString + "   "+ "family: " + '"' + self.family + '"' + " line: " + str(self.lineNumber)
-lex = Lex(r'C:\Users\GiannisB\Desktop\Metafrastes\test.cpy')
+        return '\033[92m' + self.recognizedString + '\033[0m' + "   "+ "family: " + '"' + self.family + '"' + " line: " + str(self.lineNumber)
+    
+
+class Parser:
+    def __init__(self, tokenList) -> None:
+        self.tokenList = tokenList
+        self.currentToken = tokenList[0]
+        self.tokenIndex = 0
+        print("Initialized Parser")
+        print(self.currentToken)
+
+    def error(error_mesage):
+        print(error_mesage)
+
+    def nextToken(self):
+        self.tokenIndex += 1
+        self.currentToken = self.tokenList[self.tokenIndex]
+
+    def if_stat(self):
+        self.nextToken() ##consume if
+
+        self.condition()
+        if self.currentToken.recognizedString == ":" :
+            self.nextToken()
+            self.statements()
+            self.elifpart()
+            self.elsepart()
+        else:
+            self.error("Missing ':' after if statement")
+        
+    def parse(self):
+        while self.nextToken():
+            print("Reading token " + self.currentToken)
+            self.if_stat()
+
+            
+
+lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
 lex.readFile()
 lex.printTokenList()
+parser = Parser(lex.tokenList)
+parser.parse()
