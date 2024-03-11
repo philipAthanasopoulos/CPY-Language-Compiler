@@ -79,6 +79,10 @@ class Lex:
             self.token = Token(REL_OP, token, self.currentLine)
             self.tokenList.append(self.token)
             return self.token
+        if token == ':':
+            self.token = Token(DLMTR, token, self.currentLine)
+            self.tokenList.append(self.token)
+            return self.token
         if token == '#':
             last_token  = self.token
             if last_token.family is HSTG:
@@ -125,34 +129,49 @@ class Parser:
         print("Initialized Parser")
         print(self.currentToken)
 
-    def error(error_mesage):
+    def error(self,error_mesage):
         print(error_mesage)
 
     def nextToken(self):
         self.tokenIndex += 1
         self.currentToken = self.tokenList[self.tokenIndex]
+        print("Reading token " , self.currentToken)
 
-    def if_stat(self):
-        self.nextToken() ##consume if
-
-        self.condition()
-        if self.currentToken.recognizedString == ":" :
+    def defMainFunction(self):
+        if self.currentToken.recognizedString == '#':
             self.nextToken()
-            self.statements()
-            self.elifpart()
-            self.elsepart()
-        else:
-            self.error("Missing ':' after if statement")
+            if self.currentToken.recognizedString == 'def':
+                self.nextToken()
+                if self.currentToken.recognizedString == 'main':
+                    print("Found main function")
+                    self.nextToken()
+                
+
+
+    def structuredStatement(self):
+        if self.currentToken.recognizedString == 'if':
+            self.ifStatement()
+        elif self.currentToken.recognizedString == 'while':
+            self.whileStatement()
+
+    def ifStatement(self):
+        print("Found if statement")
+
+    def whileStatement(self):
+        print("Found while statement")
         
     def parse(self):
-        while self.nextToken():
-            print("Reading token " + self.currentToken)
-            self.if_stat()
+        while True:
+            
+            self.defMainFunction()
+            self.nextToken()
 
             
 
 lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
 lex.readFile()
 lex.printTokenList()
+
+
 parser = Parser(lex.tokenList)
 parser.parse()
