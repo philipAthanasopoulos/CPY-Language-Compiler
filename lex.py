@@ -212,7 +212,8 @@ class Parser:
             
 
 ##TODO change sos that the user enters the path of the file
-lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
+# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
+lex = Lex(r'/workspaces/Metafrastes/test.cpy')
 lex.readFile()
 
 if not lex.errors:
