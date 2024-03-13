@@ -91,8 +91,6 @@ def leap(year):
         return 0 
 #}        
 
-
-        
 #def main
 #int i 
 counterFunctionCalls = 0
