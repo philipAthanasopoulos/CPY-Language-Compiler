@@ -220,7 +220,7 @@ class Parser:
                 self.nextToken()
                 if self.currentToken.family is ID_KW:
                     self.nextToken()
-                    ##do rest
+                    ##TODO do rest
                 else:
                     self.error("Missing variable name", self.currentToken)
             else:
@@ -233,7 +233,7 @@ class Parser:
                     self.nextToken()
                     if self.currentToken.recognizedString == '(':
                         self.nextToken()
-                        ##handle parameters
+                        ##TODO handle parameters
                         while self.currentToken.recognizedString != ')':
                             self.nextToken()
                         self.nextToken()
@@ -253,7 +253,7 @@ class Parser:
             if self.currentToken.family is WHITE_SPACE:
                 self.nextToken()
                 if self.currentToken.recognizedString == 'main':
-                    ##handle main part
+                    ##TODO handle main part
                     self.nextToken()
                 else:
                     self.error("Missing 'main' after function declaration", self.currentToken)
