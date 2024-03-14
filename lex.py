@@ -14,6 +14,7 @@ COMMENT = 'comment'
 WHITE_SPACE = 'white space'
 NL = 'new line'
 HSTG = 'hashtag'
+DCLR = 'declaration'
 ERROR = 'error'
 UNASSIGNED = 'unassigned'
 
@@ -147,6 +148,21 @@ class Lex:
                 self.token = Token(ID_KW, word, self.currentLine)
                 self.tokenList.pop()
                 self.tokenList.append(self.token)
+                #handle keywords
+                if self.tokenList[-2].recognizedString == '#':
+                    if self.token.recognizedString == 'int':
+                        print("Found declaration of type int")
+                        self.tokenList.pop()
+                        self.tokenList.pop()
+                        self.token = Token(DCLR, '#int', self.currentLine)
+                        self.tokenList.append(self.token)
+                    elif self.token.recognizedString == 'def':
+                        self.tokenList.pop()
+                        self.tokenList.pop()
+                        self.token = Token(DCLR, '#def', self.currentLine)
+                        self.tokenList.append(self.token)
+                elif self.token.recognizedString == 'def':
+                    self.token.family = DCLR
                 return self.nextToken()
             else:
                 self.token = Token(ID_KW, token, self.currentLine)
@@ -172,7 +188,7 @@ class Parser:
         self.tokenList = tokenList
         self.currentToken = tokenList[0]
         self.tokenIndex = 0
-        print("Initialized Parser")
+        print("Started syntax analysis")
         print(self.currentToken)
 
     def error(self,error_mesage):
@@ -183,31 +199,12 @@ class Parser:
         self.currentToken = self.tokenList[self.tokenIndex]
         print("Reading token " , self.currentToken)
 
-    def defMainFunction(self):
-        if self.currentToken.recognizedString == '#':
-            self.nextToken()
-            if self.currentToken.recognizedString == 'def':
-                self.nextToken()
-                if self.currentToken.recognizedString == 'main':
-                    print("Found main function")
-                    self.nextToken()
-                
-    def structuredStatement(self):
-        if self.currentToken.recognizedString == 'if':
-            self.ifStatement()
-        elif self.currentToken.recognizedString == 'while':
-            self.whileStatement()
-
-    def ifStatement(self):
-        print("Found if statement")
-
-    def whileStatement(self):
-        print("Found while statement")
+   
+    # def declaration(self):
+    #     if self.currentToken.recognizedString == 
+    
         
-    def parse(self):
-        while self.tokenIndex < len(self.tokenList) - 1:
-            self.defMainFunction()
-            self.nextToken()
+    
 
             
 
@@ -215,8 +212,5 @@ class Parser:
 lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
 lex.readFile()
 
-if not lex.errors:
-    parser = Parser(lex.tokenList)
-    parser.parse()
-
+lex.printTokenList()
 

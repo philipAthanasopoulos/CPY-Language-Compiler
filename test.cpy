@@ -79,7 +79,6 @@ def quad(x):
     return y
 #}
 
-
 def leap(year):
 ## returns 1 if year is a leap year, otherwise it returns 0 ##
 #{
