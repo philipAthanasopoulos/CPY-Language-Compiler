@@ -3,6 +3,14 @@ startRule
         call_main_part
     ;
 
+program
+    :   expression
+    ;
+
+expressions
+    :   declarations
+    |
+
 def_main_part
     :   ( def_main_function )+
     ;
