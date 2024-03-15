@@ -213,14 +213,22 @@ class Parser:
         self.currentToken = self.tokenList[self.tokenIndex]
         # print("Reading token ", self.currentToken)
 
-    def declaration(self):
+    def program(self):
+        while self.tokenIndex < len(self.tokenList):
+            self.block()
+    def block(self):
+        self.declarations()
+        self.subprograms()
+        self.blockstatemets()
+
+    def declarations(self):
         if self.currentToken.recognizedString == '#int':
             self.nextToken()
             if self.currentToken.family is WHITE_SPACE:
                 self.nextToken()
                 if self.currentToken.family is ID_KW:
                     self.nextToken()
-                    ##TODO do rest
+                    # TODO do rest
                 else:
                     self.error("Missing variable name", self.currentToken)
             else:
@@ -233,7 +241,7 @@ class Parser:
                     self.nextToken()
                     if self.currentToken.recognizedString == '(':
                         self.nextToken()
-                        ##TODO handle parameters
+                        # TODO handle parameters
                         while self.currentToken.recognizedString != ')':
                             self.nextToken()
                         self.nextToken()
@@ -249,7 +257,6 @@ class Parser:
                 self.error("Syntax error near 'def' declaration", self.currentToken)
         elif self.currentToken.recognizedString == '#def':
             self.nextToken()
-
             if self.currentToken.family is WHITE_SPACE:
                 self.nextToken()
                 if self.currentToken.recognizedString == 'main':
@@ -262,6 +269,129 @@ class Parser:
         else:
             self.error("Syntax error near declaration", self.currentToken)
 
+    def varlist(self):
+        pass
+
+    def subprograms(self):
+        pass
+
+    def subprogram(self):
+        pass
+
+    def formalparlist(self):
+        pass
+
+    def formalparitem(self):
+        pass
+
+    def statements(self):
+        pass
+
+    def blockstatemets(self):
+        pass
+
+    def assignStat(self):
+        pass
+
+    def ifStat(self):
+        self.nextToken()  # consume if
+        if self.currentToken.family is WHITE_SPACE:
+            self.nextToken()
+            self.conditions()
+            if self.currentToken.family is NL:
+                self.nextToken()
+                self.statements()
+                self.elsePart()
+            else:
+                self.error("Missing new line after condition", self.currentToken)
+        else:
+            self.error("Syntax error near 'if' statement", self.currentToken)
+
+    def elsePart(self):
+        if self.currentToken.recognizedString == 'else':
+            self.nextToken()
+            if self.currentToken.family is NL:
+                self.nextToken()
+                self.statements()
+            else:
+                self.error("Missing new line after else", self.currentToken)
+        else:
+            return  # else part is not mandatory
+
+    def whileStat(self):
+        if self.currentToken.recognizedString == 'while':
+            self.nextToken()
+            if self.currentToken.family is WHITE_SPACE:
+                self.nextToken()
+                self.conditions()
+                if self.currentToken.family is NL:
+                    self.nextToken()
+                    self.statements()
+                else:
+                    self.error("Missing new line after condition", self.currentToken)
+            else:
+                self.error("Syntax error near 'while' statement", self.currentToken)
+
+    def returnStat(self):
+        if self.currentToken.recognizedString == 'return':
+            self.nextToken()
+            self.expression()
+        else:
+            self.error("missing 'return' keyword", self.currentToken)
+
+    def printStat(self):
+        if self.currentToken.recognizedString == "print":
+            self.nextToken()
+            if self.currentToken.recognizedString == '(':
+                self.nextToken()
+                self.expression()  # read expression to print
+                if self.currentToken.recognizedString == ')':
+                    self.nextToken()
+                else:
+                    self.error("missing ')' after expression", self.currentToken)
+            else:
+                self.error("missing '(' before expression", self.currentToken)
+        else:
+            self.error("missing 'print' keyword", self.currentToken)
+
+
+    def inputStat(self):
+        pass
+
+    def actualparlist(self):
+        pass
+
+    def actualparitem(self):
+        pass
+
+    def condition(self):
+        return
+
+    def boolTerm(self):
+        self.nextToken()
+        self.boolFactor()
+        while self.currentToken.recognizedString == 'and':
+            self.nextToken()
+            self.boolFactor()
+
+    def boolfactor(self):
+        pass
+
+    def expression(self):
+        pass
+
+    def term(self):
+        pass
+
+    def factor(self):
+        pass
+
+    def conditions(self):
+        return
+
+    def declaration(self):
+        pass
+
     def analyze(self):
         while self.tokenIndex < len(self.tokenList):
             if self.currentToken.family is DCLR:
@@ -269,9 +399,32 @@ class Parser:
             self.nextToken()
         print("Finished syntax analysis")
 
+    def statement(self):
+        self.assignStat()
+        self.ifStat()
+        self.whileStat()
+        self.returnStat()
+        self.inputStat()
+        self.printStat()
 
-# TODO change sos that the user enters the path of the file
+    def actualParList(self):
+        pass
+
+    def actualParItem(self):
+        pass
+
+    def term(self):
+        pass
+
+    def idtail(self):
+        pass
+
+    def optionalSign(self):
+        pass
+
+
 lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
+# TODO change sos that the user enters the path of the file
 # lex = Lex(r'/workspaces/Metafrastes/test.cpy')
 lex.readFile()
 
