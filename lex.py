@@ -216,6 +216,7 @@ class Parser:
     def program(self):
         while self.tokenIndex < len(self.tokenList):
             self.block()
+
     def block(self):
         self.declarations()
         self.subprograms()
@@ -273,22 +274,55 @@ class Parser:
         pass
 
     def subprograms(self):
-        pass
+        self.subprogram()
 
     def subprogram(self):
-        pass
+        if self.currentToken.recognizedString == 'def':
+            self.nextToken()
+            if self.currentToken.family is WHITE_SPACE:
+                self.nextToken()
+                if self.currentToken.family is ID_KW:
+                    self.nextToken()
+                    if self.formalparitem():
+                        self.nextToken()
+                        if self.block():
+                            pass
+                        else:
+                            self.error("Syntax error near function block", self.currentToken)
+                    else:
+                        self.error("Syntax error near function parameters", self.currentToken)
+                else:
+                    self.error("Syntax error near function name", self.currentToken)
+            else:
+                self.error("Syntax error near 'def' declaration", self.currentToken)
 
     def formalparlist(self):
-        pass
+        self.formalparitem()
+        while self.currentToken.recognizedString == ',':
+            self.nextToken()
+            self.formalparitem()
 
     def formalparitem(self):
         pass
 
     def statements(self):
-        pass
+        if self.currentToken.recognizedString == '#{':
+            while self.currentToken.recognizedString != '#}':
+                self.nextToken()
+                self.statement()
+        else:
+            self.statement()
 
     def blockstatemets(self):
         pass
+
+    def statement(self):
+        self.assignStat()
+        self.ifStat()
+        self.whileStat()
+        self.returnStat()
+        self.inputStat()
+        self.printStat()
 
     def assignStat(self):
         pass
@@ -354,18 +388,23 @@ class Parser:
         else:
             self.error("missing 'print' keyword", self.currentToken)
 
-
     def inputStat(self):
         pass
 
     def actualparlist(self):
-        pass
+        self.actualParItem()
+        while self.currentToken.recognizedString == ',':
+            self.nextToken()
+            self.actualParItem()
 
     def actualparitem(self):
-        pass
+        self.expression()
 
     def condition(self):
-        return
+        self.boolTerm()
+        while self.currentToken.recognizedString == 'or':
+            self.nextToken()
+            self.boolTerm()
 
     def boolTerm(self):
         self.nextToken()
@@ -374,23 +413,55 @@ class Parser:
             self.nextToken()
             self.boolFactor()
 
-    def boolfactor(self):
-        pass
+    def boolFactor(self):
+        if self.currentToken.recognizedString == 'not':
+            self.nextToken()
+            self.condition()
+
+        self.condition()
+
+        self.expression()
+        if self.currentToken.family is REL_OP:
+            self.nextToken()
+            self.expression()
 
     def expression(self):
-        pass
+        self.optionalSign()
+        self.term()
+        while self.currentToken.family is ADD_OP:
+            self.nextToken()
+            self.term()
 
     def term(self):
-        pass
+        self.factor()
+        while self.currentToken.family is MUL_OP:
+            self.nextToken()
+            self.factor()
 
     def factor(self):
-        pass
+        if self.currentToken.family is NUM:
+            self.nextToken()
 
-    def conditions(self):
-        return
+        self.expression()
 
-    def declaration(self):
-        pass
+        if self.currentToken.family is ID_KW:
+            self.idtail()
+
+    def idtail(self):
+        self.actualParList()
+
+    def optionalSign(self):
+        if self.currentToken.recognizedString in ['+', '-']:
+            self.nextToken()
+
+    def actualParList(self):
+        self.actualparitem()
+        while self.currentToken.recognizedString == ',':
+            self.nextToken()
+            self.actualparitem()
+
+    def actualParItem(self):
+        self.expression()
 
     def analyze(self):
         while self.tokenIndex < len(self.tokenList):
@@ -398,29 +469,6 @@ class Parser:
                 self.declaration()
             self.nextToken()
         print("Finished syntax analysis")
-
-    def statement(self):
-        self.assignStat()
-        self.ifStat()
-        self.whileStat()
-        self.returnStat()
-        self.inputStat()
-        self.printStat()
-
-    def actualParList(self):
-        pass
-
-    def actualParItem(self):
-        pass
-
-    def term(self):
-        pass
-
-    def idtail(self):
-        pass
-
-    def optionalSign(self):
-        pass
 
 
 lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
