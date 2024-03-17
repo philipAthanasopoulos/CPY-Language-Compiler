@@ -17,13 +17,14 @@ HSTG = 'hashtag'
 DCLR = 'declaration'
 ERROR = 'error'
 UNASSIGNED = 'unassigned'
+NONE = 'none'
 
 
 class Lex:
     def __init__(self, fileName) -> None:
         self.currentLine = 1
         self.fileName = fileName
-        self.token = None
+        self.token = Token(NONE, "none", 0)
         self.fileToRead = open(fileName, 'r')
         self.tokenList = []
         self.errors = False
@@ -204,6 +205,7 @@ class Parser:
         self.currentToken = tokenList[0]
         self.tokenIndex = 0
         print("Started syntax analysis")
+        self.analyze()
 
     def error(self, error_message, token):
         print(error_message, " at line " + str(token.lineNumber))
@@ -214,8 +216,7 @@ class Parser:
         # print("Reading token ", self.currentToken)
 
     def program(self):
-        while self.tokenIndex < len(self.tokenList):
-            self.block()
+        self.block()
 
     def block(self):
         self.declarations()
@@ -224,54 +225,19 @@ class Parser:
 
     def declarations(self):
         if self.currentToken.recognizedString == '#int':
-            self.nextToken()
-            if self.currentToken.family is WHITE_SPACE:
-                self.nextToken()
-                if self.currentToken.family is ID_KW:
-                    self.nextToken()
-                    # TODO do rest
-                else:
-                    self.error("Missing variable name", self.currentToken)
-            else:
-                self.error("Syntax error near #int declaration", self.currentToken)
-        elif self.currentToken.recognizedString == 'def':
-            self.nextToken()
-            if self.currentToken.family is WHITE_SPACE:
-                self.nextToken()
-                if self.currentToken.family is ID_KW:
-                    self.nextToken()
-                    if self.currentToken.recognizedString == '(':
-                        self.nextToken()
-                        # TODO handle parameters
-                        while self.currentToken.recognizedString != ')':
-                            self.nextToken()
-                        self.nextToken()
-                        if self.currentToken.recognizedString == ':':
-                            self.nextToken()
-                        else:
-                            self.error("missing ':' after function declaration", self.currentToken)
-                    else:
-                        self.error("Missing variable parameters", self.currentToken)
-                else:
-                    self.error("Missing variable name", self.currentToken)
-            else:
-                self.error("Syntax error near 'def' declaration", self.currentToken)
-        elif self.currentToken.recognizedString == '#def':
-            self.nextToken()
-            if self.currentToken.family is WHITE_SPACE:
-                self.nextToken()
-                if self.currentToken.recognizedString == 'main':
-                    ##TODO handle main part
-                    self.nextToken()
-                else:
-                    self.error("Missing 'main' after function declaration", self.currentToken)
-            else:
-                self.error("Syntax error near main function declaration", self.currentToken)
-        else:
-            self.error("Syntax error near declaration", self.currentToken)
+            self.varlist()
 
     def varlist(self):
-        pass
+        self.nextToken() #consume #int
+        if self.currentToken.family is not WHITE_SPACE:
+            self.error("Syntax error near variable declaration", self.currentToken)
+        self.nextToken() #consume white space
+        while self.currentToken.family is ID_KW:
+            self.nextToken()
+            if self.currentToken.recognizedString == ',':
+                self.nextToken()
+            else:
+                break
 
     def subprograms(self):
         self.subprogram()
@@ -331,7 +297,7 @@ class Parser:
         self.nextToken()  # consume if
         if self.currentToken.family is WHITE_SPACE:
             self.nextToken()
-            self.conditions()
+            self.condition()
             if self.currentToken.family is NL:
                 self.nextToken()
                 self.statements()
@@ -389,7 +355,29 @@ class Parser:
             self.error("missing 'print' keyword", self.currentToken)
 
     def inputStat(self):
-        pass
+        if self.currentToken.recognizedString == 'int':
+            self.currentToken()
+            if self.currentToken.recognizedString == '(':
+                self.nextToken()
+                if self.currentToken.recognizedString == 'input':
+                    self.nextToken()
+                    if self.currentToken.recognizedString == '(':
+                        self.nextToken()
+                        if self.currentToken.recognizedString == ')':
+                            self.nextToken()
+                            if self.currentToken.recognizedString == ')':
+                                self.nextToken()
+                            else:
+                                self.error("missing ')' after 'input'", self.currentToken)
+                        else:
+                            self.error("missing ')' after 'input'", self.currentToken)
+                    else:
+                        self.error("missing '(' before 'input'", self.currentToken)
+                else:
+                    self.error("missing 'input' keyword", self.currentToken)
+            else:
+                self.error("missing '(' before 'input'", self.currentToken)
+
 
     def actualparlist(self):
         self.actualParItem()
@@ -464,19 +452,14 @@ class Parser:
         self.expression()
 
     def analyze(self):
-        while self.tokenIndex < len(self.tokenList):
-            if self.currentToken.family is DCLR:
-                self.declaration()
-            self.nextToken()
+        self.program()
         print("Finished syntax analysis")
 
 
-lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
-# TODO change sos that the user enters the path of the file
-# lex = Lex(r'/workspaces/Metafrastes/test.cpy')
+# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
+lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaration.cpy')
 lex.readFile()
 
 if not lex.errors:
     lex.printTokenList()
     parser = Parser(lex.tokenList)
-    parser.analyze()
