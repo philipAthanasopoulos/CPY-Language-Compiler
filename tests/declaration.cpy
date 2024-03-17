@@ -1,2 +1,2 @@
-#int var
-var= 0
+def function(a,b):
+return a

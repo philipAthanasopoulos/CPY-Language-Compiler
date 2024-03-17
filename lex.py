@@ -163,7 +163,7 @@ class Lex:
                 self.tokenList.pop()
                 self.tokenList.append(self.token)
                 # handle keywords
-                if self.tokenList[-2].recognizedString == '#':
+                if len(self.tokenList) > 1 and self.tokenList[-2].recognizedString == '#':
                     if self.token.recognizedString == 'int':
                         self.tokenList.pop()
                         self.tokenList.pop()
@@ -225,14 +225,16 @@ class Parser:
 
     def declarations(self):
         if self.currentToken.recognizedString == '#int':
+            print("Checking declarations")
             self.varlist()
 
     def varlist(self):
-        self.nextToken() #consume #int
+        self.nextToken()  # consume #int
         if self.currentToken.family is not WHITE_SPACE:
             self.error("Syntax error near variable declaration", self.currentToken)
-        self.nextToken() #consume white space
+        self.nextToken()  # consume white space
         while self.currentToken.family is ID_KW:
+            print("Reading variable", self.currentToken.recognizedString)
             self.nextToken()
             if self.currentToken.recognizedString == ',':
                 self.nextToken()
@@ -249,27 +251,43 @@ class Parser:
                 self.nextToken()
                 if self.currentToken.family is ID_KW:
                     self.nextToken()
-                    if self.formalparitem():
-                        self.nextToken()
-                        if self.block():
-                            pass
+                    if self.formalparlist():
+                        if self.currentToken.recognizedString == ':':
+                            self.nextToken()
+                            if self.currentToken.family is NL:
+                                self.nextToken()
+                                if self.block():
+                                    pass
+                                else:
+                                    self.error("Syntax error, missing code block", self.currentToken)
+                            else:
+                                self.error("Syntax error, missing new line after function declaration", self.currentToken)
                         else:
-                            self.error("Syntax error near function block", self.currentToken)
+                            self.error("Syntax error near function parameters, missing ':'", self.currentToken)
                     else:
-                        self.error("Syntax error near function parameters", self.currentToken)
+                        self.error("Syntax error, missing parameters", self.currentToken)
                 else:
                     self.error("Syntax error near function name", self.currentToken)
             else:
                 self.error("Syntax error near 'def' declaration", self.currentToken)
 
     def formalparlist(self):
+        print("Reading char:" , self.currentToken.recognizedString)
+        self.nextToken()  # consume (
         self.formalparitem()
+        print("Checking par list")
         while self.currentToken.recognizedString == ',':
-            self.nextToken()
+            self.nextToken()  # consume comma
             self.formalparitem()
+        print("Reading char:" , self.currentToken.recognizedString)
+        self.nextToken()  # consume )
+        print("Finished par list")
+        return True
 
     def formalparitem(self):
-        pass
+        if self.currentToken.family is ID_KW:
+            print("Read param", self.currentToken.recognizedString)
+            self.nextToken()  # consume ID
 
     def statements(self):
         if self.currentToken.recognizedString == '#{':
@@ -280,15 +298,15 @@ class Parser:
             self.statement()
 
     def blockstatemets(self):
-        pass
+        self.statement()  # FIXME
 
     def statement(self):
-        self.assignStat()
-        self.ifStat()
-        self.whileStat()
+        # self.assignStat()
+        # self.ifStat()
+        # self.whileStat()
         self.returnStat()
-        self.inputStat()
-        self.printStat()
+        # self.inputStat()
+        # self.printStat()
 
     def assignStat(self):
         pass
@@ -334,10 +352,11 @@ class Parser:
 
     def returnStat(self):
         if self.currentToken.recognizedString == 'return':
-            self.nextToken()
-            self.expression()
-        else:
-            self.error("missing 'return' keyword", self.currentToken)
+            self.nextToken() #consume return
+            if self.expression():
+                pass
+            else:
+                self.error("Missing value after return statement", self.currentToken)
 
     def printStat(self):
         if self.currentToken.recognizedString == "print":
@@ -377,7 +396,6 @@ class Parser:
                     self.error("missing 'input' keyword", self.currentToken)
             else:
                 self.error("missing '(' before 'input'", self.currentToken)
-
 
     def actualparlist(self):
         self.actualParItem()
@@ -461,5 +479,4 @@ lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaratio
 lex.readFile()
 
 if not lex.errors:
-    lex.printTokenList()
     parser = Parser(lex.tokenList)
