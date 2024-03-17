@@ -1,2 +1,3 @@
-def function(a,b):
-return a
+def fun(a  , b ,   c):
+    return a
+

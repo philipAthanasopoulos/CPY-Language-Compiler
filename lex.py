@@ -219,27 +219,36 @@ class Parser:
         self.block()
 
     def block(self):
-        self.declarations()
-        self.subprograms()
-        self.blockstatemets()
+        return self.declarations() or self.subprograms() or self.blockstatemets()
 
     def declarations(self):
-        if self.currentToken.recognizedString == '#int':
+        if self.currentToken.recognizedString in ['#int', 'global']:
             print("Checking declarations")
-            self.varlist()
+            if self.varlist():
+                pass
+            else:
+                self.error("Missing variable name near declaration", self.currentToken)
 
     def varlist(self):
-        self.nextToken()  # consume #int
+        print("In varlist")
+        self.nextToken()  # consume #decl
         if self.currentToken.family is not WHITE_SPACE:
-            self.error("Syntax error near variable declaration", self.currentToken)
+            self.error("Syntax error near variable declaration, missing white space", self.currentToken)
         self.nextToken()  # consume white space
+        if self.currentToken.family is not ID_KW:
+            print("NO variables found")
+            return False
         while self.currentToken.family is ID_KW:
             print("Reading variable", self.currentToken.recognizedString)
             self.nextToken()
+            if self.currentToken.recognizedString != ',':
+                return True
             if self.currentToken.recognizedString == ',':
                 self.nextToken()
             else:
-                break
+                return True
+
+            # global a,b,c
 
     def subprograms(self):
         self.subprogram()
@@ -257,11 +266,12 @@ class Parser:
                             if self.currentToken.family is NL:
                                 self.nextToken()
                                 if self.block():
-                                    pass
+                                    pass #FIXME
                                 else:
                                     self.error("Syntax error, missing code block", self.currentToken)
                             else:
-                                self.error("Syntax error, missing new line after function declaration", self.currentToken)
+                                self.error("Syntax error, missing new line after function declaration",
+                                           self.currentToken)
                         else:
                             self.error("Syntax error near function parameters, missing ':'", self.currentToken)
                     else:
@@ -272,21 +282,29 @@ class Parser:
                 self.error("Syntax error near 'def' declaration", self.currentToken)
 
     def formalparlist(self):
-        print("Reading char:" , self.currentToken.recognizedString)
+        print("Reading char:", self.currentToken.recognizedString)
         self.nextToken()  # consume (
+        while self.currentToken.family is WHITE_SPACE:
+            self.nextToken()
         self.formalparitem()
+        while self.currentToken.family is WHITE_SPACE:
+            self.nextToken()
         print("Checking par list")
         while self.currentToken.recognizedString == ',':
             self.nextToken()  # consume comma
+            while self.currentToken.family is WHITE_SPACE:
+                self.nextToken()
             self.formalparitem()
-        print("Reading char:" , self.currentToken.recognizedString)
+            while self.currentToken.family is WHITE_SPACE:
+                self.nextToken()
+        print("Reading char:", self.currentToken.recognizedString)
         self.nextToken()  # consume )
         print("Finished par list")
         return True
 
     def formalparitem(self):
         if self.currentToken.family is ID_KW:
-            print("Read param", self.currentToken.recognizedString)
+            # print("Read param", self.currentToken.recognizedString)
             self.nextToken()  # consume ID
 
     def statements(self):
@@ -298,15 +316,11 @@ class Parser:
             self.statement()
 
     def blockstatemets(self):
-        self.statement()  # FIXME
+        return self.statement()  # FIXME
 
     def statement(self):
-        # self.assignStat()
-        # self.ifStat()
-        # self.whileStat()
-        self.returnStat()
-        # self.inputStat()
-        # self.printStat()
+        # return self.assignStat() or self.ifStat() or self.whileStat() or self.returnStat() or self.inputStat() or self.printStat()
+        return self.returnStat()
 
     def assignStat(self):
         pass
@@ -351,14 +365,17 @@ class Parser:
                 self.error("Syntax error near 'while' statement", self.currentToken)
 
     def returnStat(self):
+        print("in returnStat")
         if self.currentToken.recognizedString == 'return':
-            self.nextToken() #consume return
-            if self.expression():
-                pass
-            else:
-                self.error("Missing value after return statement", self.currentToken)
+            self.nextToken()  # consume return
+            # if self.expression():
+            #     pass
+            # else:
+            #     self.error("Missing value after return statement", self.currentToken)
+        return True
 
     def printStat(self):
+        print(" in printStat")
         if self.currentToken.recognizedString == "print":
             self.nextToken()
             if self.currentToken.recognizedString == '(':
@@ -366,16 +383,19 @@ class Parser:
                 self.expression()  # read expression to print
                 if self.currentToken.recognizedString == ')':
                     self.nextToken()
+                    return True
                 else:
                     self.error("missing ')' after expression", self.currentToken)
             else:
                 self.error("missing '(' before expression", self.currentToken)
         else:
             self.error("missing 'print' keyword", self.currentToken)
+        return False
 
     def inputStat(self):
+        print("in inputStat")
         if self.currentToken.recognizedString == 'int':
-            self.currentToken()
+            self.nextToken()
             if self.currentToken.recognizedString == '(':
                 self.nextToken()
                 if self.currentToken.recognizedString == 'input':
@@ -386,6 +406,7 @@ class Parser:
                             self.nextToken()
                             if self.currentToken.recognizedString == ')':
                                 self.nextToken()
+                                return True
                             else:
                                 self.error("missing ')' after 'input'", self.currentToken)
                         else:
@@ -396,6 +417,8 @@ class Parser:
                     self.error("missing 'input' keyword", self.currentToken)
             else:
                 self.error("missing '(' before 'input'", self.currentToken)
+
+        return False
 
     def actualparlist(self):
         self.actualParItem()
