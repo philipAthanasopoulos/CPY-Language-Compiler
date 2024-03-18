@@ -1,3 +1,4 @@
-def fun(a  , b ,   c):
-    return a
+def hello(a,b,c):
+#int a
+a = *
 

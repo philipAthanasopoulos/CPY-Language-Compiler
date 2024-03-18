@@ -219,41 +219,73 @@ class Parser:
         self.block()
 
     def block(self):
-        return self.declarations() or self.subprograms() or self.blockstatemets()
+        print("Looking for block")
+        res = False
+        if self.declarations():
+            res = True
+
+        if self.subprograms():
+            res = True
+
+        if self.blockstatements():
+            res = True
+
+        return res
 
     def declarations(self):
+        print("Looking for declarations")
+        self.consume_white_spaces()
+        self.consume_new_line()
+        while self.declaration():
+            self.consume_white_spaces()
+            self.consume_new_line()
+        return True
+
+    def declaration(self):
+        print("Looking for declarations")
+        self.consume_white_spaces()
+        self.consume_new_line()
         if self.currentToken.recognizedString in ['#int', 'global']:
-            print("Checking declarations")
+            print("Checking declaration", self.currentToken.recognizedString)
             if self.varlist():
-                pass
+                return True
             else:
                 self.error("Missing variable name near declaration", self.currentToken)
+        return False
 
     def varlist(self):
         print("In varlist")
         self.nextToken()  # consume #decl
         if self.currentToken.family is not WHITE_SPACE:
             self.error("Syntax error near variable declaration, missing white space", self.currentToken)
-        self.nextToken()  # consume white space
+        self.consume_white_spaces()
         if self.currentToken.family is not ID_KW:
             print("NO variables found")
             return False
         while self.currentToken.family is ID_KW:
             print("Reading variable", self.currentToken.recognizedString)
-            self.nextToken()
+            self.nextToken()  # consume ID
+            self.consume_white_spaces()
             if self.currentToken.recognizedString != ',':
                 return True
             if self.currentToken.recognizedString == ',':
-                self.nextToken()
+                self.nextToken()  # consume comma
+                self.consume_white_spaces()
             else:
                 return True
 
             # global a,b,c
 
+    def consume_white_spaces(self):
+        while self.currentToken.family is WHITE_SPACE:
+            self.nextToken()  # consume white space
+
     def subprograms(self):
+        print("Looking for subprograms")
         self.subprogram()
 
     def subprogram(self):
+        print("Looking for subprogram")
         if self.currentToken.recognizedString == 'def':
             self.nextToken()
             if self.currentToken.family is WHITE_SPACE:
@@ -265,10 +297,20 @@ class Parser:
                             self.nextToken()
                             if self.currentToken.family is NL:
                                 self.nextToken()
-                                if self.block():
-                                    pass #FIXME
+                                if self.currentToken.recognizedString == '#{':
+                                    self.nextToken()  # consume {
+                                    if self.block():
+                                        while self.currentToken.family is WHITE_SPACE or self.currentToken.family is NL:
+                                            self.nextToken()
+                                        if self.currentToken.recognizedString == '#}':
+                                            self.nextToken()  # consume }
+                                            return True
+                                        else:
+                                            self.error("Syntax error, missing closing block", self.currentToken)
+                                    else:
+                                        self.error("Syntax error, missing code block", self.currentToken)
                                 else:
-                                    self.error("Syntax error, missing code block", self.currentToken)
+                                    self.error("Syntax error, missing opening block", self.currentToken)
                             else:
                                 self.error("Syntax error, missing new line after function declaration",
                                            self.currentToken)
@@ -280,6 +322,7 @@ class Parser:
                     self.error("Syntax error near function name", self.currentToken)
             else:
                 self.error("Syntax error near 'def' declaration", self.currentToken)
+        return False
 
     def formalparlist(self):
         print("Reading char:", self.currentToken.recognizedString)
@@ -308,34 +351,66 @@ class Parser:
             self.nextToken()  # consume ID
 
     def statements(self):
-        if self.currentToken.recognizedString == '#{':
-            while self.currentToken.recognizedString != '#}':
-                self.nextToken()
-                self.statement()
-        else:
-            self.statement()
+        print("Looking for statements")
+        if self.statement():
+            while self.statement():
+                pass
+            return True
+        return False
 
-    def blockstatemets(self):
-        return self.statement()  # FIXME
+    def blockstatements(self):
+        print("Looking for blockstatemets")
+        if self.statement():
+            while self.statement():
+                pass
+            return True
+        return False
 
     def statement(self):
+        print("Looking for statement")
+        while self.currentToken.family is WHITE_SPACE or self.currentToken.family is NL:
+            self.nextToken() # consume white spaces and new lines
+        if self.currentToken.recognizedString == 'return':
+            return self.returnStat()
+        elif self.currentToken.recognizedString in ['if','elif']:
+            return self.ifStat()
+        elif self.currentToken.family is ID_KW:
+            return self.assignStat()
         # return self.assignStat() or self.ifStat() or self.whileStat() or self.returnStat() or self.inputStat() or self.printStat()
-        return self.returnStat()
 
     def assignStat(self):
-        pass
+        print("Checking for assignment")
+        first_token = self.currentToken
+        self.nextToken()  # consume ID
+        self.consume_white_spaces()
+        if self.currentToken.recognizedString == '=':
+            self.nextToken()  # consume =
+            self.consume_white_spaces()
+            if self.expression():
+                print("Found assignment", first_token.recognizedString,"=", self.currentToken.recognizedString)
+                return True
+        return False
 
     def ifStat(self):
+        print("Checking for if statement")
         self.nextToken()  # consume if
-        if self.currentToken.family is WHITE_SPACE:
-            self.nextToken()
-            self.condition()
-            if self.currentToken.family is NL:
-                self.nextToken()
-                self.statements()
-                self.elsePart()
-            else:
-                self.error("Missing new line after condition", self.currentToken)
+        if self.currentToken.family is WHITE_SPACE:  # there should be at least one space after if statement
+            self.consume_white_spaces()  # consume the rest if any
+            if self.condition():
+                self.consume_white_spaces()
+                if self.currentToken.recognizedString == ':':
+                    self.nextToken()
+                    self.consume_white_spaces()
+                    if self.currentToken.family is NL:
+                        self.nextToken()  # consume new line
+                        if self.statements():
+                            return True
+                        else:
+                            self.error("Missing statements after if", self.currentToken)
+                    else:
+                        self.error("Missing new line after if", self.currentToken)
+                else:
+                    self.error("Missing ':' after if", self.currentToken)
         else:
             self.error("Syntax error near 'if' statement", self.currentToken)
 
@@ -365,14 +440,15 @@ class Parser:
                 self.error("Syntax error near 'while' statement", self.currentToken)
 
     def returnStat(self):
-        print("in returnStat")
-        if self.currentToken.recognizedString == 'return':
-            self.nextToken()  # consume return
-            # if self.expression():
-            #     pass
-            # else:
-            #     self.error("Missing value after return statement", self.currentToken)
-        return True
+        print("Checking for return statement")
+        self.nextToken()  # consume return
+        while self.currentToken.family is WHITE_SPACE:
+            self.nextToken()  # consume white spaces
+        if self.expression():
+            return True
+        else:
+            self.error("Missing value after return statement", self.currentToken)
+            return False
 
     def printStat(self):
         print(" in printStat")
@@ -427,78 +503,130 @@ class Parser:
             self.actualParItem()
 
     def actualparitem(self):
-        self.expression()
+        if self.expression() or self.currentToken.family is ID_KW:
+            return True
+        return False
 
     def condition(self):
-        self.boolTerm()
-        while self.currentToken.recognizedString == 'or':
-            self.nextToken()
-            self.boolTerm()
+        print("Checking for condition")
+        self.consume_white_spaces()
+        if self.boolTerm():
+            print("Found condition")
+            while self.currentToken.recognizedString == 'or':
+                self.nextToken()  # consume or
+                if not self.boolTerm(): return False
+            print("Returned condition")
+            return True
+        return False
 
     def boolTerm(self):
-        self.nextToken()
-        self.boolFactor()
-        while self.currentToken.recognizedString == 'and':
-            self.nextToken()
-            self.boolFactor()
+        print("Checking for bool term")
+        self.consume_white_spaces()
+        if self.boolFactor():
+            print("Found bool term")
+            while self.currentToken.recognizedString == 'and':
+                self.nextToken()  # consume and
+                self.consume_white_spaces()
+                if not self.boolFactor(): return False
+            print("Returned boolTerm")
+            return True
+        return False
 
     def boolFactor(self):
+        print("Checking for bool factor")
+        self.consume_white_spaces()
+        if self.expression():
+            print("boolfactor found expr")
+            self.consume_white_spaces()
+            if self.currentToken.family is REL_OP:
+                print("Found rel op", self.currentToken.recognizedString)
+                self.nextToken()  # consume rel op
+                self.consume_white_spaces()
+                if self.expression(): return True
         if self.currentToken.recognizedString == 'not':
-            self.nextToken()
-            self.condition()
+            self.nextToken()  # consume not
+            if self.condition():
+                print("boolfactor found condition")
+                return True
 
-        self.condition()
-
-        self.expression()
-        if self.currentToken.family is REL_OP:
-            self.nextToken()
-            self.expression()
+        if self.condition():
+            print("boolfactor found condition")
+            return True
+        print("Didnt find bool factor")
+        return False
 
     def expression(self):
-        self.optionalSign()
-        self.term()
-        while self.currentToken.family is ADD_OP:
-            self.nextToken()
-            self.term()
+        print("Checking for expression")
+        if self.optionalSign():
+            if self.term():
+                self.consume_white_spaces()
+                while self.currentToken.family is ADD_OP:
+                    print("Found add op", self.currentToken.recognizedString)
+                    self.nextToken()  # consume add op
+                    if not self.term(): return False
+                print("Found expression")
+                return True
+        return False
+        # 1+1
 
     def term(self):
-        self.factor()
-        while self.currentToken.family is MUL_OP:
-            self.nextToken()
-            self.factor()
+        print("Checking for term")
+        self.consume_white_spaces()
+        if self.factor():
+            self.consume_white_spaces()
+            while self.currentToken.family is MUL_OP:
+                print("Found mul op", self.currentToken.recognizedString)
+                self.nextToken()  # consume mul op
+                if not self.factor(): return False
+            return True
+        else:
+            return False
 
     def factor(self):
-        if self.currentToken.family is NUM:
-            self.nextToken()
-
-        self.expression()
-
-        if self.currentToken.family is ID_KW:
-            self.idtail()
+        print("Checking for factor")
+        if self.currentToken.family is NUM or self.currentToken.family is ID_KW:
+            print("Read factor ", self.currentToken.recognizedString)
+            self.nextToken()  # consume number
+            return True
+        return False
 
     def idtail(self):
+        print("Checking for idtail")
         self.actualParList()
 
     def optionalSign(self):
-        if self.currentToken.recognizedString in ['+', '-']:
-            self.nextToken()
+        print("Checking for sign")
+        self.consume_white_spaces()
+        if self.currentToken.recognizedString in ['+',
+                                                  '-'] or self.currentToken.family is NUM or self.currentToken.family is ID_KW:
+            print("Found sign")
+            if self.currentToken.recognizedString in ['+', '-']: self.nextToken()
+            return True
+        print("No sign found")
+        return False
 
     def actualParList(self):
+        print("Checking for par list")
         self.actualparitem()
         while self.currentToken.recognizedString == ',':
             self.nextToken()
             self.actualparitem()
 
     def actualParItem(self):
+        print("Checking for act par list")
         self.expression()
 
     def analyze(self):
         self.program()
         print("Finished syntax analysis")
 
+    def consume_new_line(self):
+        while self.currentToken.family is NL:
+            self.nextToken()
 
-# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
-lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaration.cpy')
+
+lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
+# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaration.cpy')
 lex.readFile()
 
 if not lex.errors:
