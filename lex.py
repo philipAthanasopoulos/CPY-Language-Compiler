@@ -1,5 +1,6 @@
 # FILIPPOS ATHANASOPULOS ANTYRAS 5113
 # IOANNIS MPOUZAS 5025
+import sys
 
 NUMBERS = '0123456789'
 NUM = 'number'
@@ -18,6 +19,8 @@ DCLR = 'declaration'
 ERROR = 'error'
 UNASSIGNED = 'unassigned'
 NONE = 'none'
+reserved_words = ['main', 'def', '#def', '#int', 'global', 'if', 'elif'
+    , 'else', 'while', 'print', 'return', 'input', 'int', 'and', 'or', 'not']
 
 
 class Lex:
@@ -47,9 +50,6 @@ class Lex:
     def printTokenList(self):
         for token in self.tokenList:
             print(token)
-
-    reserved_words = ['main', 'def', '#def', '#int', 'global', 'if', 'elif'
-        , 'else', 'while', 'print', 'return', 'input', 'int', 'and', 'or', 'not']
 
     def nextToken(self):
         token = self.fileToRead.read(1)
@@ -208,9 +208,12 @@ class Parser:
         self.analyze()
 
     def error(self, error_message, token):
-        print(error_message, " at line " + str(token.lineNumber))
+        print("\033[91m Error: \033[0m", error_message, " at line " + str(token.lineNumber))
 
     def nextToken(self):
+        if self.tokenIndex >= len(self.tokenList) - 1:
+            print("Run out of Tokens!")
+            sys.exit()
         self.tokenIndex += 1
         self.currentToken = self.tokenList[self.tokenIndex]
         # print("Reading token ", self.currentToken)
@@ -229,7 +232,7 @@ class Parser:
 
         if self.blockstatements():
             res = True
-
+        if res: print("Found block")
         return res
 
     def declarations(self):
@@ -282,10 +285,15 @@ class Parser:
 
     def subprograms(self):
         print("Looking for subprograms")
-        self.subprogram()
+        if self.subprogram():
+            while self.subprogram():
+                pass
+            return True
+        return False
 
     def subprogram(self):
         print("Looking for subprogram")
+        self.skip_spaces_and_nl()
         if self.currentToken.recognizedString == 'def':
             self.nextToken()
             if self.currentToken.family is WHITE_SPACE:
@@ -296,12 +304,12 @@ class Parser:
                         if self.currentToken.recognizedString == ':':
                             self.nextToken()
                             if self.currentToken.family is NL:
-                                self.nextToken()
+                                self.nextToken()  # consume new line
+                                self.skip_spaces_and_nl()
                                 if self.currentToken.recognizedString == '#{':
                                     self.nextToken()  # consume {
                                     if self.block():
-                                        while self.currentToken.family is WHITE_SPACE or self.currentToken.family is NL:
-                                            self.nextToken()
+                                        self.skip_spaces_and_nl()
                                         if self.currentToken.recognizedString == '#}':
                                             self.nextToken()  # consume }
                                             return True
@@ -355,11 +363,12 @@ class Parser:
         if self.statement():
             while self.statement():
                 pass
+            print('Found statements')
             return True
         return False
 
     def blockstatements(self):
-        print("Looking for blockstatemets")
+        print("Looking for blockstatements")
         if self.statement():
             while self.statement():
                 pass
@@ -368,15 +377,19 @@ class Parser:
 
     def statement(self):
         print("Looking for statement")
-        while self.currentToken.family is WHITE_SPACE or self.currentToken.family is NL:
-            self.nextToken() # consume white spaces and new lines
+        self.skip_spaces_and_nl()
+        if self.tokenIndex >= len(self.tokenList):
+            return False
         if self.currentToken.recognizedString == 'return':
             return self.returnStat()
-        elif self.currentToken.recognizedString in ['if','elif']:
+        elif self.currentToken.recognizedString == 'if':
             return self.ifStat()
-        elif self.currentToken.family is ID_KW:
+        elif self.currentToken.recognizedString == 'while':
+            return self.whileStat()
+        elif self.currentToken.family is ID_KW and self.currentToken.recognizedString not in reserved_words:
             return self.assignStat()
-        # return self.assignStat() or self.ifStat() or self.whileStat() or self.returnStat() or self.inputStat() or self.printStat()
+
+        return False
 
     def assignStat(self):
         print("Checking for assignment")
@@ -387,23 +400,30 @@ class Parser:
             self.nextToken()  # consume =
             self.consume_white_spaces()
             if self.expression():
-                print("Found assignment", first_token.recognizedString,"=", self.currentToken.recognizedString)
+                print("Found assignment", first_token.recognizedString, "=", self.currentToken.recognizedString)
                 return True
         return False
 
     def ifStat(self):
-        print("Checking for if statement")
+        print("Found if statement")
         self.nextToken()  # consume if
         if self.currentToken.family is WHITE_SPACE:  # there should be at least one space after if statement
             self.consume_white_spaces()  # consume the rest if any
             if self.condition():
                 self.consume_white_spaces()
                 if self.currentToken.recognizedString == ':':
-                    self.nextToken()
+                    self.nextToken()  # consume :
                     self.consume_white_spaces()
                     if self.currentToken.family is NL:
                         self.nextToken()  # consume new line
+                        self.skip_spaces_and_nl()
                         if self.statements():
+                            self.skip_spaces_and_nl()
+                            while self.elifStat():  # check for elif statements
+                                self.skip_spaces_and_nl()
+                                pass
+                            self.skip_spaces_and_nl()
+                            self.elseStat()
                             return True
                         else:
                             self.error("Missing statements after if", self.currentToken)
@@ -414,33 +434,97 @@ class Parser:
         else:
             self.error("Syntax error near 'if' statement", self.currentToken)
 
-    def elsePart(self):
-        if self.currentToken.recognizedString == 'else':
-            self.nextToken()
-            if self.currentToken.family is NL:
-                self.nextToken()
-                self.statements()
+    def elifStat(self):
+        print("Checking for elif statement")
+        print(self.currentToken)
+        if self.currentToken.recognizedString == 'elif':
+            print("Found elif statement")
+            self.nextToken()  # consume elif
+            self.consume_white_spaces()
+            if self.condition():
+                self.consume_white_spaces()
+                if self.currentToken.recognizedString == ':':
+                    self.nextToken()
+                    self.consume_white_spaces()
+                    if self.currentToken.family is NL:
+                        self.nextToken()  # consume new line
+                        self.skip_spaces_and_nl()
+                        if self.statements():
+                            return True
+                        else:
+                            self.error("Missing statements after elif", self.currentToken)
+                    else:
+                        self.error("Missing new line after condition", self.currentToken)
+                else:
+                    self.error("Missing ':' after condition", self.currentToken)
             else:
-                self.error("Missing new line after else", self.currentToken)
-        else:
-            return  # else part is not mandatory
+                self.error("Missing condition after elif", self.currentToken)
+
+        return False
+
+    def elseStat(self):
+        print("Checking for else statement")
+        if self.currentToken.recognizedString == 'else':
+            print("Found else statement")
+            self.nextToken()  # consume else
+            self.consume_white_spaces()
+            if self.currentToken.recognizedString == ':':
+                self.nextToken()  # consume :
+                self.skip_spaces_and_nl()
+                if self.statements():
+                    return True
+                else:
+                    self.error("Missing statement after else", self.currentToken)
+            else:
+                self.error("Missing ':' after else", self.currentToken)
+        return False
+
+    def skip_spaces_and_nl(self):
+        while self.currentToken.family is WHITE_SPACE or self.currentToken.family is NL:
+            self.nextToken()
 
     def whileStat(self):
-        if self.currentToken.recognizedString == 'while':
-            self.nextToken()
-            if self.currentToken.family is WHITE_SPACE:
-                self.nextToken()
-                self.conditions()
-                if self.currentToken.family is NL:
-                    self.nextToken()
-                    self.statements()
+        print("Found while")
+        print(self.currentToken)
+        self.nextToken()  # consume while
+        if self.currentToken.family is WHITE_SPACE:
+            self.consume_white_spaces()
+            if self.condition():
+                print("Found while condition")
+                self.consume_white_spaces()
+                if self.currentToken.recognizedString == ':':
+                    self.nextToken()  # consume :
+                    if self.currentToken.family is NL:
+                        self.nextToken()  # consume new line
+                        self.skip_spaces_and_nl()
+                        if self.currentToken.recognizedString == '#{':
+                            self.nextToken()  # consume {
+                            self.skip_spaces_and_nl()
+                            if self.statements():
+                                self.skip_spaces_and_nl()
+                                if self.currentToken.recognizedString == '#}':
+                                    self.nextToken()
+                                    return True
+                                else:
+                                    self.error("Missing closing block", self.currentToken)
+                            else:
+                                self.error("Missing statements after while", self.currentToken)
+                                print(self.currentToken)
+                        else:
+                            self.error("Missing opening block", self.currentToken)
+                    else:
+                        self.error("Missing new line after condition", self.currentToken)
                 else:
-                    self.error("Missing new line after condition", self.currentToken)
+                    self.error("Missing ':' after condition", self.currentToken)
             else:
-                self.error("Syntax error near 'while' statement", self.currentToken)
+                self.error("Missing condition after while", self.currentToken)
+        else:
+            self.error("Syntax error near 'while' statement", self.currentToken)
+
+        return False
 
     def returnStat(self):
-        print("Checking for return statement")
+        print("Found return statement")
         self.nextToken()  # consume return
         while self.currentToken.family is WHITE_SPACE:
             self.nextToken()  # consume white spaces

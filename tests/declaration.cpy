@@ -1,4 +1,8 @@
 def hello(a,b,c):
-#int a
-a = *
-
+    #{
+        while a < b:
+        #{
+            return a
+            a = a+1
+        #}
+    #}
