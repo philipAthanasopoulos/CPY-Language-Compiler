@@ -711,7 +711,13 @@ class Parser:
                 return True
         elif self.currentToken.family is GRP_SMBL:
             self.nextToken()  # consume (
-            
+            if self.expression():
+                if self.currentToken.recognizedString == ')':
+                    self.nextToken()
+                    return True
+                else:
+                    self.error("Missing closing parenthesis", self.currentToken)
+                    return False
         return False
 
     def idtail(self):
