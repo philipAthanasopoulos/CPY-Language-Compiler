@@ -649,7 +649,18 @@ class Parser:
 
     def expression(self):
         print("Checking for expression")
+        print(self.currentToken.recognizedString)
         if self.optionalSign():
+            if self.term():
+                self.consume_white_spaces()
+                print(self.currentToken.recognizedString)
+                while self.currentToken.family is ADD_OP:
+                    print("Found add op", self.currentToken.recognizedString)
+                    self.nextToken()  # consume add op
+                    if not self.term(): return False
+                print("Found expression")
+                return True
+        else:
             if self.term():
                 self.consume_white_spaces()
                 print(self.currentToken.recognizedString)
@@ -698,6 +709,9 @@ class Parser:
                 print("Read factor ", self.tokenList[self.tokenIndex - 1].recognizedString)
                 print("Current token ", self.currentToken.family)
                 return True
+        elif self.currentToken.family is GRP_SMBL:
+            self.nextToken()  # consume (
+            
         return False
 
     def idtail(self):
@@ -773,8 +787,8 @@ class Parser:
         return self.tokenIndex < len(self.tokenList)
 
 
-# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
-lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaration.cpy')
+# lex = Lex(r'C:\Users\GiannisB\Desktop\Metafrastes\test.cpy')
+lex = Lex(r'C:\Users\GiannisB\Desktop\Metafrastes\tests\declaration.cpy')
 lex.readFile()
 
 if not lex.errors:
