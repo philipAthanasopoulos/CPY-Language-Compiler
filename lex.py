@@ -198,62 +198,79 @@ class Token:
         return '\033[92m' + self.recognizedString + '\033[0m' + "   " + "family: " + '"' + self.family + '"' + " line: " + str(
             self.lineNumber)
 
-
 class Parser:
+
     def __init__(self, tokenList) -> None:
         self.tokenList = tokenList
         self.currentToken = tokenList[0]
         self.tokenIndex = 0
+        self.numberOfPrograms = 0
         print("Started syntax analysis")
         self.analyze()
 
     def error(self, error_message, token):
         print("\033[91m Error: \033[0m", error_message, " at line " + str(token.lineNumber))
+        sys.exit()
 
     def nextToken(self):
         if self.tokenIndex >= len(self.tokenList) - 1:
             print("Run out of Tokens!")
+            sys.exit()  # goofy ahh
             return False
-            sys.exit()
         self.tokenIndex += 1
         self.currentToken = self.tokenList[self.tokenIndex]
         return True
 
     def program(self):
-        self.block()
+        while self.hasTokens():
+            self.block()
+
+
 
     def block(self):
         res = False
-        while self.currentToken.recognizedString !='#}' and self.hasTokens():
-            self.skip_spaces_and_nl()
+
+        self.skip_spaces_and_nl()
+        if self.currentToken.recognizedString == '#}':
+            return True
+
+        while self.currentToken.recognizedString != '#}' and self.hasTokens():
 
             if self.declarations():
                 res = True
+                print("Finished declarations")
 
+            self.skip_spaces_and_nl()
             if self.subprograms():
                 res = True
+                print("Finished subprograms")
 
+            self.skip_spaces_and_nl()
             if self.blockstatements():
                 res = True
+                print("Finished blockstatemets")
 
             if self.mainPart():
                 res = True
+                print("Finished main")
 
             if res: print("Found block")
+
 
         return res
 
     def declarations(self):
         print("Looking for declarations")
-        self.consume_white_spaces()
-        self.consume_new_line()
-        while self.declaration():
-            self.consume_white_spaces()
-            self.consume_new_line()
-        return True
+        self.skip_spaces_and_nl()
+        if self.declaration():
+            self.skip_spaces_and_nl()
+            # while self.declaration():
+            #     self.skip_spaces_and_nl()
+            return True
+        return False
 
     def declaration(self):
-        print("Looking for declarations")
+        print("Looking for declaration")
         self.consume_white_spaces()
         self.consume_new_line()
         if self.currentToken.recognizedString in ['#int', 'global']:
@@ -262,6 +279,7 @@ class Parser:
                 return True
             else:
                 self.error("Missing variable name near declaration", self.currentToken)
+        print('Didnt find any declarations')
         return False
 
     def varlist(self):
@@ -289,15 +307,20 @@ class Parser:
         while self.currentToken.family is WHITE_SPACE:
             self.nextToken()  # consume white space
 
+
     def subprograms(self):
         print("Looking for subprograms")
         if self.subprogram():
-            while self.subprogram():
-                pass
+            # while self.subprogram():
+            #     pass
             return True
+        print("Didnt find any subprograms")
         return False
 
     def subprogram(self):
+        print(self.currentToken)
+        self.numberOfPrograms = self.numberOfPrograms + 1
+        print("NUmber of programs:", self.numberOfPrograms)
         print("Looking for subprogram")
         self.skip_spaces_and_nl()
         if self.currentToken.recognizedString == 'def':
@@ -329,6 +352,7 @@ class Parser:
                                 self.error("Syntax error, missing new line after function declaration",
                                            self.currentToken)
                         else:
+                            print(self.currentToken)
                             self.error("Syntax error near function parameters, missing ':'", self.currentToken)
                     else:
                         self.error("Syntax error, missing parameters", self.currentToken)
@@ -341,28 +365,30 @@ class Parser:
     def formalparlist(self):
         print("Reading char:", self.currentToken.recognizedString)
         self.nextToken()  # consume (
-        while self.currentToken.family is WHITE_SPACE:
-            self.nextToken()
-        self.formalparitem()
-        while self.currentToken.family is WHITE_SPACE:
-            self.nextToken()
-        print("Checking par list")
-        while self.currentToken.recognizedString == ',':
-            self.nextToken()  # consume comma
-            while self.currentToken.family is WHITE_SPACE:
-                self.nextToken()
-            self.formalparitem()
-            while self.currentToken.family is WHITE_SPACE:
-                self.nextToken()
-        print("Reading char:", self.currentToken.recognizedString)
+        self.consume_white_spaces()
+        if self.formalparitem():
+            self.consume_white_spaces()
+            print("Checking par list")
+            while self.currentToken.recognizedString == ',':
+                self.nextToken()  # consume comma
+                self.consume_white_spaces()
+                if self.formalparitem():
+                    pass
+                else:
+                    self.error("Syntax error near formal parameter", self.currentToken)
+                self.consume_white_spaces()
+            print("Reading char:", self.currentToken.recognizedString)
         self.nextToken()  # consume )
         print("Finished par list")
         return True
+
 
     def formalparitem(self):
         if self.currentToken.family is ID_KW:
             # print("Read param", self.currentToken.recognizedString)
             self.nextToken()  # consume ID
+            return True
+        return False
 
     def statements(self):
         print("Looking for statements")
@@ -374,11 +400,13 @@ class Parser:
         return False
 
     def blockstatements(self):
-        print("Looking for blockstatements")
+        print("Looking for blockstatements with token:", self.currentToken)
+        print(self.currentToken)
         if self.statement():
-            while self.statement():
-                pass
+            # while self.statement():
+            #     pass
             return True
+        print("Didnt find any blockstatements")
         return False
 
     def statement(self):
@@ -534,8 +562,7 @@ class Parser:
     def returnStat(self):
         print("Found return statement")
         self.nextToken()  # consume return
-        while self.currentToken.family is WHITE_SPACE:
-            self.nextToken()  # consume white spaces
+        self.consume_white_spaces()
         if self.expression():
             return True
         else:
@@ -657,6 +684,7 @@ class Parser:
                 while self.currentToken.family is ADD_OP:
                     print("Found add op", self.currentToken.recognizedString)
                     self.nextToken()  # consume add op
+                    self.consume_white_spaces()
                     if not self.term(): return False
                 print("Found expression")
                 return True
@@ -681,6 +709,7 @@ class Parser:
             while self.currentToken.family is MUL_OP:
                 print("Found mul op", self.currentToken.recognizedString)
                 self.nextToken()  # consume mul op
+                self.consume_white_spaces()
                 if not self.factor(): return False
             print("Found term")
             return True
@@ -689,12 +718,15 @@ class Parser:
 
     def factor(self):
         print("Checking for factor")
+        self.consume_white_spaces()
         if self.currentToken.family is NUM:
             print("Read factor ", self.currentToken.recognizedString)
             self.nextToken()  # consume number
             return True
         elif self.currentToken.family is ID_KW:
+
             self.nextToken()  # consume ID
+
             if self.currentToken.recognizedString == '(':
                 self.nextToken()  # consume (
                 print("Found function factor")
@@ -709,6 +741,7 @@ class Parser:
                 print("Read factor ", self.tokenList[self.tokenIndex - 1].recognizedString)
                 print("Current token ", self.currentToken.family)
                 return True
+            self.nextToken()  # consume ID
         elif self.currentToken.family is GRP_SMBL:
             self.nextToken()  # consume (
             if self.expression():
@@ -769,7 +802,7 @@ class Parser:
     def mainPart(self):
         self.skip_spaces_and_nl()
         if self.currentToken.recognizedString == '#def':
-            self.nextToken() # consume def
+            self.nextToken()  # consume def
             if self.currentToken.family is WHITE_SPACE:
                 self.nextToken()
                 if self.currentToken.recognizedString == 'main':
@@ -787,6 +820,7 @@ class Parser:
                     self.error("Missing main function", self.currentToken)
             else:
                 self.error("Missing white space after def", self.currentToken)
+        print("Didnt find main fun")
         return False
 
     def hasTokens(self):
@@ -794,7 +828,9 @@ class Parser:
 
 
 # lex = Lex(r'C:\Users\GiannisB\Desktop\Metafrastes\test.cpy')
-lex = Lex(r'C:\Users\GiannisB\Desktop\Metafrastes\tests\declaration.cpy')
+# lex = Lex(r'C:\Users\GiannisB\Desktop\Metafrastes\tests\declaration.cpy')
+lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
+# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaration.cpy')
 lex.readFile()
 
 if not lex.errors:

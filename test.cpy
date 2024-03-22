@@ -8,7 +8,7 @@ def max3(x,y,z):
 #{
     #int m
     global counterFunctionCalls
-    counterFunctionCalls = counterFunctionCalls + 1
+    counterFunctionCalls = counterFunctionCalls+1
     if x>y and x>z:
         m = x
     elif y>x and y>z:
@@ -83,7 +83,6 @@ def quad(x):
 #}
 
 def leap(year):
-## returns 1 if year is a leap year, otherwise it returns 0 ##
 #{
     global counterFunctionCalls
     counterFunctionCalls = counterFunctionCalls + 1
@@ -94,7 +93,7 @@ def leap(year):
 #}        
 
 #def main
-#int i 
+#int i
 counterFunctionCalls = 0
 
 i = int(input())
