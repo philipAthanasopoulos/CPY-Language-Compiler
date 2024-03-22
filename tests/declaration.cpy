@@ -1,8 +1,12 @@
-def hello(a,b,c):
+def isPrime(x):
+#{
+    def isPrime(x):
     #{
-        while a < b:
-        #{
-            return a
-            a = a+1
-        #}
+        #int i
+
     #}
+
+    return i
+
+
+#}

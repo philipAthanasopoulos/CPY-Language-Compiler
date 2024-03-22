@@ -213,26 +213,34 @@ class Parser:
     def nextToken(self):
         if self.tokenIndex >= len(self.tokenList) - 1:
             print("Run out of Tokens!")
+            return False
             sys.exit()
         self.tokenIndex += 1
         self.currentToken = self.tokenList[self.tokenIndex]
-        # print("Reading token ", self.currentToken)
+        return True
 
     def program(self):
         self.block()
 
     def block(self):
-        print("Looking for block")
         res = False
-        if self.declarations():
-            res = True
+        while self.currentToken.recognizedString !='#}' and self.hasTokens():
+            self.skip_spaces_and_nl()
 
-        if self.subprograms():
-            res = True
+            if self.declarations():
+                res = True
 
-        if self.blockstatements():
-            res = True
-        if res: print("Found block")
+            if self.subprograms():
+                res = True
+
+            if self.blockstatements():
+                res = True
+
+            if self.mainPart():
+                res = True
+
+            if res: print("Found block")
+
         return res
 
     def declarations(self):
@@ -276,8 +284,6 @@ class Parser:
                 self.consume_white_spaces()
             else:
                 return True
-
-            # global a,b,c
 
     def consume_white_spaces(self):
         while self.currentToken.family is WHITE_SPACE:
@@ -386,6 +392,8 @@ class Parser:
             return self.ifStat()
         elif self.currentToken.recognizedString == 'while':
             return self.whileStat()
+        elif self.currentToken.family is COMMENT:
+            return self.commentStat()
         elif self.currentToken.family is ID_KW and self.currentToken.recognizedString not in reserved_words:
             return self.assignStat()
 
@@ -644,6 +652,7 @@ class Parser:
         if self.optionalSign():
             if self.term():
                 self.consume_white_spaces()
+                print(self.currentToken.recognizedString)
                 while self.currentToken.family is ADD_OP:
                     print("Found add op", self.currentToken.recognizedString)
                     self.nextToken()  # consume add op
@@ -662,16 +671,33 @@ class Parser:
                 print("Found mul op", self.currentToken.recognizedString)
                 self.nextToken()  # consume mul op
                 if not self.factor(): return False
+            print("Found term")
             return True
         else:
             return False
 
     def factor(self):
         print("Checking for factor")
-        if self.currentToken.family is NUM or self.currentToken.family is ID_KW:
+        if self.currentToken.family is NUM:
             print("Read factor ", self.currentToken.recognizedString)
             self.nextToken()  # consume number
             return True
+        elif self.currentToken.family is ID_KW:
+            self.nextToken()  # consume ID
+            if self.currentToken.recognizedString == '(':
+                self.nextToken()  # consume (
+                print("Found function factor")
+                if self.expression():
+                    if self.currentToken.recognizedString == ')':
+                        self.nextToken()
+                        return True
+                    else:
+                        self.error("Missing closing parenthesis", self.currentToken)
+                        return False
+            else:
+                print("Read factor ", self.tokenList[self.tokenIndex - 1].recognizedString)
+                print("Current token ", self.currentToken.family)
+                return True
         return False
 
     def idtail(self):
@@ -708,9 +734,47 @@ class Parser:
         while self.currentToken.family is NL:
             self.nextToken()
 
+    def commentStat(self):
+        print("Checking for comment")
+        self.nextToken()  # consume ##
+        while self.nextToken():
+            if self.currentToken.family is COMMENT:
+                print("Found comment")
+                self.nextToken()  # consume ending ##
+                return True
+            elif self.currentToken.family is NL:
+                self.error("Missing closing comment", self.currentToken)
+                return False
 
-lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
-# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaration.cpy')
+    def mainPart(self):
+        self.skip_spaces_and_nl()
+        if self.currentToken.recognizedString == '#def':
+            self.nextToken() # consume def
+            if self.currentToken.family is WHITE_SPACE:
+                self.nextToken()
+                if self.currentToken.recognizedString == 'main':
+                    self.nextToken()
+                    self.consume_white_spaces()
+                    if self.currentToken.family is NL:
+                        self.skip_spaces_and_nl()
+                        self.declarations()
+                        self.blockstatements()
+                        print("Found main function")
+                        return True
+                    else:
+                        self.error("Missing new line after main", self.currentToken)
+                else:
+                    self.error("Missing main function", self.currentToken)
+            else:
+                self.error("Missing white space after def", self.currentToken)
+        return False
+
+    def hasTokens(self):
+        return self.tokenIndex < len(self.tokenList)
+
+
+# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
+lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaration.cpy')
 lex.readFile()
 
 if not lex.errors:
