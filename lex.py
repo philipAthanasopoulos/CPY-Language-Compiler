@@ -436,6 +436,10 @@ class Parser:
             if self.expression():
                 print("Found assignment", first_token.recognizedString, "=", self.currentToken.recognizedString)
                 return True
+            else:
+                self.error("Missing expression after assignment", self.currentToken)
+        else:
+            self.error("Missing assignment operator", self.currentToken)
         return False
 
     def ifStat(self):
@@ -626,15 +630,6 @@ class Parser:
                     self.error("Missing actual parameter", self.currentToken)
         return True
 
-    # def actualParList(self):
-    #     print("Checking for par list")
-    #     self.consume_white_spaces()
-    #     self.actualparitem()
-    #     while self.currentToken.recognizedString == ',':
-    #         self.nextToken()
-    #         self.consume_white_spaces()
-    #         self.actualparitem()
-
     def actualparitem(self):
         print("Checking for act param item")
         if self.expression():
@@ -645,10 +640,6 @@ class Parser:
             self.nextToken()  # consume id
             return True
         return False
-
-    # def actualParItem(self):
-    #     print("Checking for act par item")
-    #     self.expression()
 
     def condition(self):
         print("Checking for condition")
@@ -710,6 +701,11 @@ class Parser:
                     self.nextToken()  # consume add op
                     self.consume_white_spaces()
                     if not self.term(): return False
+                # self.consume_white_spaces()
+                # if self.currentToken.family is NL:
+                #     pass
+                # else:
+                #     self.error("Missing operator within expression", self.currentToken)
                 print("Found expression")
                 return True
         else:
@@ -720,6 +716,11 @@ class Parser:
                     print("Found add op", self.currentToken.recognizedString)
                     self.nextToken()  # consume add op
                     if not self.term(): return False
+                # self.consume_white_spaces()
+                # if self.currentToken.family is NL:
+                #     pass
+                # else:
+                #     self.error("Missing operator within expression", self.currentToken)
                 print("Found expression")
                 return True
         return False
@@ -841,8 +842,8 @@ class Parser:
 
 # lex = Lex(r'C:\Users\GiannisB\Desktop\Metafrastes\test.cpy')
 # lex = Lex(r'C:\Users\GiannisB\Desktop\Metafrastes\tests\declaration.cpy')
-lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
-# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaration.cpy')
+# lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\test.cpy')
+lex = Lex(r'C:\Users\Philip\Desktop\UOI\Metafrastes\Metafrastes\tests\declaration.cpy')
 lex.readFile()
 
 if not lex.errors:

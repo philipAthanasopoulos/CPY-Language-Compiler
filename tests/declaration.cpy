@@ -16,6 +16,61 @@ def max3(x,y,z):
     else:
         m = z
     return m
+    def fib(x):
+    #{
+        global counterFunctionCalls
+        counterFunctionCalls = counterFunctionCalls + 1
+        if x<0:
+            return -1
+        elif x==0 or x==1:
+            return 1
+        else:
+            return fib(x-1,a)+fib(x-2)
+            def fib(x):
+            #{
+                global counterFunctionCalls
+                counterFunctionCalls = counterFunctionCalls + 1
+                if x<0:
+                    return -1
+                elif x==0 or x==1:
+                    return 1
+                else:
+                    return fib(x-1,a)+fib(x-2)
+            #}
+            def fib(x):
+            #{
+                global counterFunctionCalls
+                counterFunctionCalls = counterFunctionCalls + 1
+                if x<0:
+                    return -1
+                elif x==0 or x==1:
+                    return 1
+                else:
+                    return fib(x-1,a)+fib(x-2)
+            #}
+            def fib(x):
+            #{
+                global counterFunctionCalls
+                counterFunctionCalls = counterFunctionCalls + 1
+                if x<0:
+                    return -1
+                elif x==0 or x==1:
+                    return 1
+                else:
+                    return fib(x-1,a)+fib(x-2)
+            #}
+            def fib(x):
+            #{
+                global counterFunctionCalls
+                counterFunctionCalls = counterFunctionCalls + 1
+                if x<0:
+                    return -1
+                elif x==0 or x==1:
+                    return 1
+                else:
+                    return fib(x-1,a)+fib(x-2)
+            #}
+    #}
 #}
 
 
@@ -71,13 +126,13 @@ def quad(x):
     #{
         ## body of sqr ##
         global counterFunctionCalls
-        counterFunctionCalls = counterFunctionCalls + 1
-        return x*x
+        counterFunctionCalls = counterFunctionCalls - 1*a
+        return x*x+1
     #}
     
     ## body of quad ##
     global counterFunctionCalls
-    counterFunctionCalls = counterFunctionCalls + 1
+    counterFunctionCalls  = counterFunctionCalls + 1
     y = sqr(x)*sqr(x)
     return y
 #}
