@@ -198,6 +198,7 @@ class Token:
         return '\033[92m' + self.recognizedString + '\033[0m' + "   " + "family: " + '"' + self.family + '"' + " line: " + str(
             self.lineNumber)
 
+
 class Parser:
 
     def __init__(self, tokenList) -> None:
@@ -224,8 +225,6 @@ class Parser:
     def program(self):
         while self.hasTokens():
             self.block()
-
-
 
     def block(self):
         res = False
@@ -255,7 +254,6 @@ class Parser:
                 print("Finished main")
 
             if res: print("Found block")
-
 
         return res
 
@@ -306,7 +304,6 @@ class Parser:
     def consume_white_spaces(self):
         while self.currentToken.family is WHITE_SPACE:
             self.nextToken()  # consume white space
-
 
     def subprograms(self):
         print("Looking for subprograms")
@@ -382,7 +379,6 @@ class Parser:
         print("Finished par list")
         return True
 
-
     def formalparitem(self):
         if self.currentToken.family is ID_KW:
             # print("Read param", self.currentToken.recognizedString)
@@ -420,6 +416,8 @@ class Parser:
             return self.ifStat()
         elif self.currentToken.recognizedString == 'while':
             return self.whileStat()
+        elif self.currentToken.recognizedString == "print":
+            return self.printStat()
         elif self.currentToken.family is COMMENT:
             return self.commentStat()
         elif self.currentToken.family is ID_KW and self.currentToken.recognizedString not in reserved_words:
@@ -616,15 +614,41 @@ class Parser:
         return False
 
     def actualparlist(self):
-        self.actualParItem()
-        while self.currentToken.recognizedString == ',':
-            self.nextToken()
-            self.actualParItem()
+        print("Checking act par list")
+        if self.actualparitem():
+            while self.currentToken.recognizedString == ',':
+                print("Found comma, checking for next param")
+                self.nextToken()
+                if self.actualparitem():
+                    self.consume_white_spaces()
+                    pass
+                else:
+                    self.error("Missing actual parameter", self.currentToken)
+        return True
+
+    # def actualParList(self):
+    #     print("Checking for par list")
+    #     self.consume_white_spaces()
+    #     self.actualparitem()
+    #     while self.currentToken.recognizedString == ',':
+    #         self.nextToken()
+    #         self.consume_white_spaces()
+    #         self.actualparitem()
 
     def actualparitem(self):
-        if self.expression() or self.currentToken.family is ID_KW:
+        print("Checking for act param item")
+        if self.expression():
+            print("Found expression parameter")
+            return True
+        elif self.currentToken.family is ID_KW:
+            print("Found actual parameter", self.currentToken.recognizedString)
+            self.nextToken()  # consume id
             return True
         return False
+
+    # def actualParItem(self):
+    #     print("Checking for act par item")
+    #     self.expression()
 
     def condition(self):
         print("Checking for condition")
@@ -699,7 +723,6 @@ class Parser:
                 print("Found expression")
                 return True
         return False
-        # 1+1
 
     def term(self):
         print("Checking for term")
@@ -723,39 +746,39 @@ class Parser:
             print("Read factor ", self.currentToken.recognizedString)
             self.nextToken()  # consume number
             return True
-        elif self.currentToken.family is ID_KW:
-
-            self.nextToken()  # consume ID
-
-            if self.currentToken.recognizedString == '(':
-                self.nextToken()  # consume (
-                print("Found function factor")
-                if self.expression():
-                    if self.currentToken.recognizedString == ')':
-                        self.nextToken()
-                        return True
-                    else:
-                        self.error("Missing closing parenthesis", self.currentToken)
-                        return False
-            else:
-                print("Read factor ", self.tokenList[self.tokenIndex - 1].recognizedString)
-                print("Current token ", self.currentToken.family)
-                return True
-            self.nextToken()  # consume ID
-        elif self.currentToken.family is GRP_SMBL:
+        elif self.currentToken.recognizedString == '(':
             self.nextToken()  # consume (
             if self.expression():
                 if self.currentToken.recognizedString == ')':
                     self.nextToken()
                     return True
                 else:
-                    self.error("Missing closing parenthesis", self.currentToken)
+                    self.error("Missing closing parenthesis near factor", self.currentToken)
                     return False
+        elif self.currentToken.family is ID_KW:
+            self.nextToken()  # consume ID
+            if self.idtail():
+                pass
+            return True
+
         return False
 
     def idtail(self):
         print("Checking for idtail")
-        self.actualParList()
+        self.consume_white_spaces()
+        if self.currentToken.recognizedString == '(':
+            self.nextToken()
+            self.consume_white_spaces()
+            if self.actualparlist():
+                if self.currentToken.recognizedString == ')':
+                    self.nextToken()
+                    return True
+                else:
+                    print(self.currentToken)
+                    self.error("Missing closing parenthesis near id tail", self.currentToken)
+            else:
+                self.error("Missing actual parameters", self.currentToken)
+        return False
 
     def optionalSign(self):
         print("Checking for sign")
@@ -767,17 +790,6 @@ class Parser:
             return True
         print("No sign found")
         return False
-
-    def actualParList(self):
-        print("Checking for par list")
-        self.actualparitem()
-        while self.currentToken.recognizedString == ',':
-            self.nextToken()
-            self.actualparitem()
-
-    def actualParItem(self):
-        print("Checking for act par list")
-        self.expression()
 
     def analyze(self):
         self.program()
