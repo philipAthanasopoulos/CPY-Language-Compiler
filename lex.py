@@ -701,7 +701,8 @@ class Parser:
                 print("Found rel op", self.currentToken.recognizedString)
                 self.nextToken()  # consume rel op
                 self.consume_white_spaces()
-                if self.expression(): return True
+                if self.expression():
+                    return True
                 else:
                     self.error("Missing expression after relational operator", self.currentToken)
 
@@ -864,11 +865,77 @@ class Parser:
         return self.tokenIndex < len(self.tokenList)
 
 
-# main part
-print("Enter the full path of the file to be compiled:")
-lex = Lex(input())
-lex.readFile()
+class QuadList:
 
-if not lex.errors:
-    lex.printTokenList()
-    parser = Parser(lex.tokenList)
+    def __init__(self):
+        self.programList = []
+        self.quad_counter = 0
+
+    def __str__(self):
+        print("Program list:", self.programList)
+        print("Program counter:", self.quad_counter)
+
+    def backPatch(self):
+        return
+
+    def genQuad(self):
+        return
+
+    def nextQuad(self):
+        return
+
+
+class QuadPointerList:
+    def __init__(self):
+        self.labelList = []
+
+    def __str__(self):
+        print(self.labelList)
+
+    def mergeList(self):
+        return
+
+
+class QuadPointer:
+    def __init__(self):
+        self.label = ""
+
+    def __str__(self):
+        print(self.label)
+
+
+class Quad:
+    def __init__(self):
+        self.label = ""
+        self.op = ""
+        self.op1 = ""
+        self.op2 = ""
+        self.op3 = ""
+        print("quad done")
+
+    def __str__(self):
+        print("Label:", self.label, [op for op in [
+            self.op,
+            self.op1,
+            self.op2,
+            self.op3
+        ]])
+
+
+quad = Quad()
+quad.label = "101"
+quad.op = ">"
+quad.op1 = "a"
+quad.op2 = "b"
+quad.op3 = "102"
+
+print(quad)
+
+# # main part
+# print("Enter the full path of the file to be compiled:")
+# lex = Lex(input())
+# lex.readFile()
+#
+# if not lex.errors:
+#     lex.printTokenList()
+#     parser = Parser(lex.tokenList)
