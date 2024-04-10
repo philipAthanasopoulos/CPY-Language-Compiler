@@ -213,8 +213,12 @@ class Parser:
         self.currentToken = tokenList[0]
         self.tokenIndex = 0
         self.numberOfPrograms = 0
+        self.generated_program = QuadList()
         print("Started syntax analysis")
         self.analyze()
+
+    def newTemp(self):
+        return
 
     def error(self, error_message, token):
         print("\033[91m Error: \033[0m", error_message, " at line " + str(token.lineNumber))
@@ -223,7 +227,8 @@ class Parser:
     def nextToken(self):
         if self.tokenIndex >= len(self.tokenList) - 1:
             print("Finished Syntax analysis")
-            sys.exit()  # goofy ahh
+            # sys.exit()  # goofy ahh
+            raise Exception("Run out of tokens")
             return False
         self.tokenIndex += 1
         self.currentToken = self.tokenList[self.tokenIndex]
@@ -241,7 +246,6 @@ class Parser:
             return True
 
         while self.currentToken.recognizedString != '#}' and self.hasTokens():
-
             if self.declarations():
                 res = True
                 print("Finished declarations")
@@ -332,6 +336,8 @@ class Parser:
             if self.currentToken.family is WHITE_SPACE:
                 self.nextToken()
                 if self.currentToken.family is ID_KW:
+                    block_name = self.currentToken.recognizedString
+                    self.generated_program.genQuad("begin_block", block_name, "_", "_")
                     self.nextToken()
                     if self.formalparlist():
                         if self.currentToken.recognizedString == ':':
@@ -345,6 +351,7 @@ class Parser:
                                         self.skip_spaces_and_nl()
                                         if self.currentToken.recognizedString == '#}':
                                             self.nextToken()  # consume }
+                                            self.generated_program.genQuad("end_block", block_name, "_", "_")
                                             return True
                                         else:
                                             self.error("Syntax error, missing closing block", self.currentToken)
@@ -817,8 +824,11 @@ class Parser:
         return False
 
     def analyze(self):
-        self.program()
-        print("Finished syntax analysis")
+        try:
+            self.program()
+            print("Finished syntax analysis")
+        except Exception as e:
+            print("Finished syntax analysis")
 
     def consume_new_line(self):
         while self.currentToken.family is NL:
@@ -844,6 +854,7 @@ class Parser:
             if self.currentToken.family is WHITE_SPACE:
                 self.nextToken()
                 if self.currentToken.recognizedString == 'main':
+                    self.generated_program.genQuad("begin_block", "main", "_", "_")
                     self.nextToken()
                     self.consume_white_spaces()
                     if self.currentToken.family is NL:
@@ -851,6 +862,7 @@ class Parser:
                         self.declarations()
                         self.blockstatements()
                         print("Found main function")
+                        self.generated_program.genQuad("end_block", "main", "_", "_")
                         return True
                     else:
                         self.error("Missing new line after main", self.currentToken)
@@ -872,14 +884,15 @@ class QuadList:
         self.quad_counter = 0
 
     def __str__(self):
-        print("Program list:", self.programList)
-        print("Program counter:", self.quad_counter)
+        print("Program list:")
+        return "\n".join(str(quad) for quad in self.programList)
 
     def backPatch(self):
         return
 
-    def genQuad(self):
-        return
+    def genQuad(self, op, op1, op2, op3):
+        self.programList.append(Quad(self.quad_counter, op, op1, op2, op3))
+        self.quad_counter += 1
 
     def nextQuad(self):
         return
@@ -897,45 +910,32 @@ class QuadPointerList:
 
 
 class QuadPointer:
-    def __init__(self):
-        self.label = ""
+    def __init__(self, label):
+        self.label = label
 
     def __str__(self):
         print(self.label)
 
 
 class Quad:
-    def __init__(self):
-        self.label = ""
-        self.op = ""
-        self.op1 = ""
-        self.op2 = ""
-        self.op3 = ""
-        print("quad done")
+    def __init__(self, label, op, op1, op2, op3):
+        self.label = label
+        self.op = op
+        self.op1 = op1
+        self.op2 = op2
+        self.op3 = op3
+        print("Generated quad ", self)
 
     def __str__(self):
-        print("Label:", self.label, [op for op in [
-            self.op,
-            self.op1,
-            self.op2,
-            self.op3
-        ]])
+        return str(self.label) + ": " + str(self.op) + ", " + str(self.op1) + ", " + str(self.op2) + ", " + str(self.op3)
 
 
-quad = Quad()
-quad.label = "101"
-quad.op = ">"
-quad.op1 = "a"
-quad.op2 = "b"
-quad.op3 = "102"
+# main part
+print("Enter the full path of the file to be compiled:")
+lex = Lex(input())
+lex.readFile()
 
-print(quad)
-
-# # main part
-# print("Enter the full path of the file to be compiled:")
-# lex = Lex(input())
-# lex.readFile()
-#
-# if not lex.errors:
-#     lex.printTokenList()
-#     parser = Parser(lex.tokenList)
+if not lex.errors:
+    lex.printTokenList()
+    parser = Parser(lex.tokenList)
+    print(parser.generated_program)
