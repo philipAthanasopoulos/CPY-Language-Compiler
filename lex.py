@@ -209,16 +209,19 @@ class Token:
 class Parser:
 
     def __init__(self, tokenList) -> None:
+        self.looking_for_param = None
         self.tokenList = tokenList
         self.currentToken = tokenList[0]
         self.tokenIndex = 0
         self.numberOfPrograms = 0
         self.generated_program = QuadList()
         print("Started syntax analysis")
+        self.temp_counter = 0
         self.analyze()
 
     def newTemp(self):
-        return
+        self.temp_counter += 1
+        return "T_" + str(self.temp_counter)
 
     def error(self, error_message, token):
         print("\033[91m Error: \033[0m", error_message, " at line " + str(token.lineNumber))
@@ -452,6 +455,7 @@ class Parser:
     def assignStat(self):
         print("Checking for assignment")
         first_token = self.currentToken
+        self.generated_program.genQuad("=", "_", "_", first_token.recognizedString)
         self.nextToken()  # consume ID
         self.consume_white_spaces()
         if self.currentToken.recognizedString == '=':
@@ -646,6 +650,7 @@ class Parser:
 
     def actualparlist(self):
         print("Checking act par list")
+        self.looking_for_param = True
         if self.actualparitem():
             while self.currentToken.recognizedString == ',':
                 print("Found comma, checking for next param")
@@ -655,6 +660,7 @@ class Parser:
                     pass
                 else:
                     self.error("Missing actual parameter", self.currentToken)
+        self.looking_for_param = False
         return True
 
     def actualparitem(self):
@@ -662,7 +668,11 @@ class Parser:
         if self.expression():
             print("Found expression parameter")
             return True
+
+        # TODO
+        # REMOVE DEAD ASS CODE
         elif self.currentToken.family is ID_KW:
+            self.generated_program.genQuad("par", self.currentToken.recognizedString, "CV", "_")
             print("Found actual parameter", self.currentToken.recognizedString)
             self.nextToken()  # consume id
             return True
@@ -788,9 +798,10 @@ class Parser:
                     self.error("Missing closing parenthesis near factor", self.currentToken)
                     return False
         elif self.currentToken.family is ID_KW:
+            lastId = self.currentToken.recognizedString
             self.nextToken()  # consume ID
             if self.idtail():
-                pass
+                self.generated_program.genQuad("call", lastId, "_", "_")
             return True
         print("didnt find factor")
         return False
@@ -861,7 +872,8 @@ class Parser:
                         self.skip_spaces_and_nl()
                         self.declarations()
                         self.blockstatements()
-                        print("Found main function")
+                        print("\033[31m" + "Found main function" + "\033[0m")
+                        self.generated_program.genQuad("halt", "_", "_", "_")
                         self.generated_program.genQuad("end_block", "main", "_", "_")
                         return True
                     else:
@@ -887,15 +899,16 @@ class QuadList:
         print("Program list:")
         return "\n".join(str(quad) for quad in self.programList)
 
-    def backPatch(self):
-        return
+    def backPatch(self, list, target_label):
+        for quad in list:
+            quad.op3 = target_label
 
     def genQuad(self, op, op1, op2, op3):
         self.programList.append(Quad(self.quad_counter, op, op1, op2, op3))
         self.quad_counter += 1
 
     def nextQuad(self):
-        return
+        return self.quad_counter + 1
 
 
 class QuadPointerList:
@@ -905,8 +918,8 @@ class QuadPointerList:
     def __str__(self):
         print(self.labelList)
 
-    def mergeList(self):
-        return
+    def mergeList(self, list1, list2):
+        return list1 + list2 #Python moment
 
 
 class QuadPointer:
@@ -927,7 +940,8 @@ class Quad:
         print("Generated quad ", self)
 
     def __str__(self):
-        return str(self.label) + ": " + str(self.op) + ", " + str(self.op1) + ", " + str(self.op2) + ", " + str(self.op3)
+        return str(self.label) + ": " + str(self.op) + ", " + str(self.op1) + ", " + str(self.op2) + ", " + str(
+            self.op3)
 
 
 # main part
