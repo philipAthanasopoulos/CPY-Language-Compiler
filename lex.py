@@ -425,7 +425,7 @@ class Parser:
     def blockstatements(self):
         print("Looking for blockstatements with token:", self.currentToken)
         print(self.currentToken)
-        if self.statement():
+        if self.statements():
             return True
         print("Didnt find any blockstatements")
         return False
