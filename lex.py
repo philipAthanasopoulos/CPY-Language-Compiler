@@ -209,11 +209,13 @@ class Token:
 class Parser:
 
     def __init__(self, tokenList) -> None:
+        self.last_temp = "T_0"
         self.looking_for_param = None
         self.tokenList = tokenList
         self.currentToken = tokenList[0]
         self.tokenIndex = 0
         self.numberOfPrograms = 0
+        self.termList = []
         self.generated_program = QuadList()
         print("Started syntax analysis")
         self.temp_counter = 0
@@ -221,7 +223,8 @@ class Parser:
 
     def newTemp(self):
         self.temp_counter += 1
-        return "T_" + str(self.temp_counter)
+        self.last_temp = "T_" + str(self.temp_counter)
+        return self.last_temp
 
     def error(self, error_message, token):
         print("\033[91m Error: \033[0m", error_message, " at line " + str(token.lineNumber))
@@ -454,18 +457,26 @@ class Parser:
 
     def assignStat(self):
         print("Checking for assignment")
-        first_token = self.currentToken
-        self.generated_program.genQuad("=", "_", "_", first_token.recognizedString)
+        id = self.currentToken.recognizedString
         self.nextToken()  # consume ID
         self.consume_white_spaces()
         if self.currentToken.recognizedString == '=':
             self.nextToken()  # consume =
             self.consume_white_spaces()
+
+            start_index = self.tokenIndex
             if self.inputStat():
+                self.generated_program.genQuad("par", self.newTemp(), "RET","_")
+                self.generated_program.genQuad("call", "input", "_", "_")
+                self.generated_program.genQuad(":=", self.last_temp, "_", id)
                 print('Found input assignment')
                 return True
             elif self.expression():
-                print("Found assignment", first_token.recognizedString, "=", self.currentToken.recognizedString)
+                value = ''.join(token.recognizedString for token in self.tokenList[start_index:self.tokenIndex]).strip()
+                if self.is_complex_token_between(start_index):
+                    value = self.last_temp
+                self.generated_program.genQuad(":=", value, "_", id)
+                print("Found assignment", id, "=", self.currentToken.recognizedString)
                 return True
             else:
                 self.error("Missing expression after assignment", self.currentToken)
@@ -651,13 +662,22 @@ class Parser:
     def actualparlist(self):
         print("Checking act par list")
         self.looking_for_param = True
+        start_index = self.tokenIndex
         if self.actualparitem():
+            item1 = self.tokens_between(start_index)
+            if self.is_complex_token_between(start_index):  # case of simple factor
+                item1 = self.last_temp
+            self.generated_program.genQuad("par", item1, "CV", "_")
             while self.currentToken.recognizedString == ',':
                 print("Found comma, checking for next param")
                 self.nextToken()
+                start_index = self.tokenIndex
                 if self.actualparitem():
                     self.consume_white_spaces()
-                    pass
+                    item2 = self.tokens_between(start_index)
+                    if self.is_complex_token_between(start_index):
+                        item2 = self.last_temp
+                    self.generated_program.genQuad("par", item2, "CV", "_")
                 else:
                     self.error("Missing actual parameter", self.currentToken)
         self.looking_for_param = False
@@ -740,16 +760,26 @@ class Parser:
         print("Checking for expression")
         print(self.currentToken.recognizedString)
         if self.optionalSign():
+            current_list_index = self.tokenIndex
             if self.term():
+                term1 = self.tokens_between(current_list_index)
+                if self.is_complex_token_between(current_list_index):  # case of simple factor
+                    term1 = self.last_temp
                 self.consume_white_spaces()
                 print(self.currentToken.recognizedString)
                 while self.currentToken.family is ADD_OP:
+                    operator = self.currentToken.recognizedString
                     print("Found add op", self.currentToken.recognizedString)
                     self.nextToken()  # consume add op
                     self.consume_white_spaces()
+                    current_list_index = self.tokenIndex
                     if not self.term():
                         self.error("Missing term after add operator", self.currentToken)
                         return False
+                    term2 = self.tokens_between(current_list_index)
+                    if self.is_complex_token_between(current_list_index):
+                        term2 = self.last_temp
+                    self.generated_program.genQuad(operator, term1, term2, self.newTemp())
                 print("Found expression")
                 return True
         else:
@@ -766,20 +796,37 @@ class Parser:
                 return True
         return False
 
+    def tokens_between(self, current_list_index):
+        return ' '.join(
+            token.recognizedString for token in self.tokenList[current_list_index:self.tokenIndex]).strip()
+
     def term(self):
         print("Checking for term")
         self.consume_white_spaces()
+        start_index = self.tokenIndex
         if self.factor():
+            factor1 = self.tokens_between(start_index)
+            if self.is_complex_token_between(start_index):  # case of simple factor
+                factor1 = self.last_temp
             self.consume_white_spaces()
             while self.currentToken.family is MUL_OP:
+                operator = self.currentToken.recognizedString
                 print("Found mul op", self.currentToken.recognizedString)
                 self.nextToken()  # consume mul op
                 self.consume_white_spaces()
+                start_index = self.tokenIndex
                 if not self.factor(): return False
+                factor2 = self.tokens_between(start_index)
+                if self.is_complex_token_between(start_index):  # case of simple factor:
+                    factor2 = self.last_temp
+                self.generated_program.genQuad(operator, factor1, factor2, self.newTemp())
             print("Found term")
             return True
         else:
             return False
+
+    def is_complex_token_between(self, start_index):
+        return sum(1 for token in self.tokenList[start_index:self.tokenIndex] if token.family != 'WHITE_SPACE') > 1
 
     def factor(self):
         print("Checking for factor")
@@ -801,6 +848,7 @@ class Parser:
             lastId = self.currentToken.recognizedString
             self.nextToken()  # consume ID
             if self.idtail():
+                self.generated_program.genQuad("par", self.newTemp(), "RET", "_")
                 self.generated_program.genQuad("call", lastId, "_", "_")
             return True
         print("didnt find factor")
@@ -919,7 +967,7 @@ class QuadPointerList:
         print(self.labelList)
 
     def mergeList(self, list1, list2):
-        return list1 + list2 #Python moment
+        return list1 + list2  # Python moment
 
 
 class QuadPointer:

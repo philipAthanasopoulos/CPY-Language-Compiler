@@ -80,7 +80,7 @@ def quad(x):
     ## body of quad ##
     global counterFunctionCalls
     counterFunctionCalls = counterFunctionCalls + 1
-    y = sqr(x)*sqr(x)
+    y = sqr(y)*sqr(x)
     return y
 #}
 
