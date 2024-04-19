@@ -215,7 +215,6 @@ class Parser:
         self.currentToken = tokenList[0]
         self.tokenIndex = 0
         self.numberOfPrograms = 0
-        self.termList = []
         self.generated_program = QuadList()
         print("Started syntax analysis")
         self.temp_counter = 0
@@ -466,7 +465,7 @@ class Parser:
 
             start_index = self.tokenIndex
             if self.inputStat():
-                self.generated_program.genQuad("par", self.newTemp(), "RET","_")
+                self.generated_program.genQuad("par", self.newTemp(), "RET", "_")
                 self.generated_program.genQuad("call", "input", "_", "_")
                 self.generated_program.genQuad(":=", self.last_temp, "_", id)
                 print('Found input assignment')
@@ -717,6 +716,7 @@ class Parser:
         self.consume_white_spaces()
         if self.boolFactor():
             print("Found bool term")
+            self.consume_white_spaces()
             while self.currentToken.recognizedString == 'and':
                 self.nextToken()  # consume and
                 self.consume_white_spaces()
@@ -730,15 +730,27 @@ class Parser:
     def boolFactor(self):
         print("Checking for bool factor")
         self.consume_white_spaces()
-
+        start_index = self.tokenIndex
         if self.expression():
-            print("boolfactor found expr")
+            expression1 = self.tokens_between(start_index)
+            print("Found expression", expression1)
+            if self.is_complex_token_between(start_index):
+                print("Found complex expression", expression1)
+                expression1 = self.last_temp
             self.consume_white_spaces()
             if self.currentToken.family is REL_OP:
-                print("Found rel op", self.currentToken.recognizedString)
+                rel_op = self.currentToken.recognizedString
                 self.nextToken()  # consume rel op
                 self.consume_white_spaces()
+                start_index = self.tokenIndex
                 if self.expression():
+                    expression2 = self.tokens_between(start_index)
+                    self.consume_white_spaces()
+                    if self.is_complex_token_between(start_index):
+                        print("Found complex expression", expression2)
+                        expression2 = self.last_temp
+                    self.generated_program.genQuad(rel_op, expression1, expression2, "_")
+                    self.generated_program.genQuad("jump", "_", "_", "_")
                     return True
                 else:
                     self.error("Missing expression after relational operator", self.currentToken)
@@ -797,8 +809,12 @@ class Parser:
         return False
 
     def tokens_between(self, current_list_index):
-        return ' '.join(
-            token.recognizedString for token in self.tokenList[current_list_index:self.tokenIndex]).strip()
+        # return [token for token in self.tokenList[current_list_index,self.currentToken] if token.family is not 'WHITE_SPACE']
+
+        return (''.join(
+            token.recognizedString for token in self.tokenList[current_list_index:self.tokenIndex] if
+            token.family is not WHITE_SPACE)
+                .strip())
 
     def term(self):
         print("Checking for term")
@@ -826,7 +842,7 @@ class Parser:
             return False
 
     def is_complex_token_between(self, start_index):
-        return sum(1 for token in self.tokenList[start_index:self.tokenIndex] if token.family != 'WHITE_SPACE') > 1
+        return sum(1 for token in self.tokenList[start_index:self.tokenIndex - 1] if token.family != 'WHITE_SPACE') > 1
 
     def factor(self):
         print("Checking for factor")

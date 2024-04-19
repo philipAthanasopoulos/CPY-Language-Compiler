@@ -88,6 +88,8 @@ def leap(year):
 #{
     global counterFunctionCalls
     counterFunctionCalls = counterFunctionCalls + 1
+    if year*77==0:
+        return 0
     if year%4==0 and year%100!=0 or year%400==0:
         return 1
     else:
@@ -119,6 +121,8 @@ while i<=12:
     print(isPrime(i))
     i = i + 1
 #}
+
+a = 1-4-2-1-31-12-3-1-23
 
 print(counterFunctionCalls)
 
