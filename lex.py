@@ -700,29 +700,40 @@ class Parser:
     def condition(self):
         print("Checking for condition")
         self.consume_white_spaces()
+        quad_list = []
         if self.boolTerm():
             print("Found condition")
             while self.currentToken.recognizedString == 'or':
+                quad_list.append(self.generated_program.getLastQuad())
+                self.generated_program.backPatch([self.generated_program.getLastQuad()],
+                                                 self.generated_program.quad_counter)
                 self.nextToken()  # consume or
                 if not self.boolTerm():
                     self.error("Missing bool term", self.currentToken)
                     return False
+
             print("Returned condition")
+
             return True
         return False
 
     def boolTerm(self):
         print("Checking for bool term")
         self.consume_white_spaces()
+        quad_list = []
         if self.boolFactor():
             print("Found bool term")
             self.consume_white_spaces()
             while self.currentToken.recognizedString == 'and':
+                self.generated_program.backPatch([self.generated_program.getSecondLastQuad()],
+                                                 self.generated_program.quad_counter)
                 self.nextToken()  # consume and
                 self.consume_white_spaces()
+                quad_list.append(self.generated_program.getLastQuad())
                 if not self.boolFactor():
                     self.error("Missing bool factor", self.currentToken)
                     return False
+
             print("Returned boolTerm")
             return True
         return False
@@ -974,6 +985,12 @@ class QuadList:
     def nextQuad(self):
         return self.quad_counter + 1
 
+    def getLastQuad(self):
+        return self.programList[-1]
+
+    def getSecondLastQuad(self):
+        return self.programList[-2]
+
 
 class QuadPointerList:
     def __init__(self):
@@ -995,16 +1012,16 @@ class QuadPointer:
 
 
 class Quad:
-    def __init__(self, label, op, op1, op2, op3):
+    def __init__(self, label, op0, op1, op2, op3):
         self.label = label
-        self.op = op
+        self.op0 = op0
         self.op1 = op1
         self.op2 = op2
         self.op3 = op3
         print("Generated quad ", self)
 
     def __str__(self):
-        return str(self.label) + ": " + str(self.op) + ", " + str(self.op1) + ", " + str(self.op2) + ", " + str(
+        return str(self.label) + ": " + str(self.op0) + ", " + str(self.op1) + ", " + str(self.op2) + ", " + str(
             self.op3)
 
 
