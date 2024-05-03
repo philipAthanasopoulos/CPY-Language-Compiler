@@ -1,3 +1,5 @@
 #def main
-if a>b and a>c and a>d:
-    print(a)
+if a>b:
+    b = b+1
+else:
+    b = b-1

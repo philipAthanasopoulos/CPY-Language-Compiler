@@ -488,7 +488,13 @@ class Parser:
         self.nextToken()  # consume if
         if self.currentToken.family is WHITE_SPACE:  # there should be at least one space after if statement
             self.consume_white_spaces()  # consume the rest if any
+            start_index = len(self.generated_program.programList)
             if self.condition():
+                quads = self.generated_program.programList[start_index:self.generated_program.quad_counter]
+                conds = [quads for quads in quads if quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
+                self.generated_program.backPatch(conds, self.generated_program.quad_counter)
+                #Keep the jumps to backpatch them later
+                jumps = [quads for quads in quads if quads.op0 == 'jump']
                 self.consume_white_spaces()
                 if self.currentToken.recognizedString == ':':
                     self.nextToken()  # consume :
@@ -498,6 +504,8 @@ class Parser:
                         self.skip_spaces_and_nl()
                         if self.statements():
                             self.skip_spaces_and_nl()
+                            #Backpatch the jumps of false conditions to the end of the block
+                            self.generated_program.backPatch(jumps, self.generated_program.quad_counter)
                             while self.elifStat():  # check for elif statements
                                 self.skip_spaces_and_nl()
                                 pass
@@ -520,7 +528,14 @@ class Parser:
             print("Found elif statement")
             self.nextToken()  # consume elif
             self.consume_white_spaces()
+            #Same logic with if statement
+            start_index = len(self.generated_program.programList)
             if self.condition():
+                quads = self.generated_program.programList[start_index:self.generated_program.quad_counter]
+                conds = [quads for quads in quads if quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
+                self.generated_program.backPatch(conds, self.generated_program.quad_counter)
+                #Keep the jumps to backpatch them later
+                jumps = [quads for quads in quads if quads.op0 == 'jump']
                 self.consume_white_spaces()
                 if self.currentToken.recognizedString == ':':
                     self.nextToken()
@@ -529,6 +544,8 @@ class Parser:
                         self.nextToken()  # consume new line
                         self.skip_spaces_and_nl()
                         if self.statements():
+                            #Backpatch the jumps of false conditions to the end of the block
+                            self.generated_program.backPatch(jumps, self.generated_program.quad_counter)
                             return True
                         else:
                             self.error("Missing statements after elif", self.currentToken)
@@ -568,8 +585,19 @@ class Parser:
         self.nextToken()  # consume while
         if self.currentToken.family is WHITE_SPACE:
             self.consume_white_spaces()
+            #get tokens of condition
+            start_index = len(self.generated_program.programList)
             if self.condition():
                 print("Found while condition")
+                #Those are the condition quads
+                quads = self.generated_program.programList[start_index:self.generated_program.quad_counter]
+                #Backpatch the true values to get into the block
+                conds = [quads for quads in quads if quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
+                self.generated_program.backPatch(conds, self.generated_program.quad_counter)
+
+                #Keep the jumps to backpatch them later
+                jumps = [quads for quads in quads if quads.op0 == 'jump']
+
                 self.consume_white_spaces()
                 if self.currentToken.recognizedString == ':':
                     self.nextToken()  # consume :
@@ -582,6 +610,10 @@ class Parser:
                             if self.statements():
                                 self.skip_spaces_and_nl()
                                 if self.currentToken.recognizedString == '#}':
+                                    #Add jump to the beginning of the block
+                                    self.generated_program.genQuad("jump", "_", "_", str(quads[0].label))
+                                    #Backpatch the jumps of false conditions to the end of the block
+                                    self.generated_program.backPatch(jumps, self.generated_program.quad_counter)
                                     self.nextToken()
                                     return True
                                 else:
@@ -869,6 +901,7 @@ class Parser:
                     self.nextToken()
                     return True
                 else:
+                    print(self.currentToken.recognizedString)
                     self.error("Missing closing parenthesis near factor", self.currentToken)
                     return False
         elif self.currentToken.family is ID_KW:
@@ -968,7 +1001,7 @@ class QuadList:
 
     def __init__(self):
         self.programList = []
-        self.quad_counter = 0
+        self.quad_counter = 99
 
     def __str__(self):
         print("Program list:")
