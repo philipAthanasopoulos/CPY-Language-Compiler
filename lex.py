@@ -494,7 +494,7 @@ class Parser:
                 conds = [quads for quads in quads if quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
                 self.generated_program.backPatch(conds, self.generated_program.quad_counter)
                 #Keep the jumps to backpatch them later
-                jumps = [quads for quads in quads if quads.op0 == 'jump']
+                jumps = [quads for quads in quads if quads.op0 == 'jump' and quads.op3 == '_']
                 self.consume_white_spaces()
                 if self.currentToken.recognizedString == ':':
                     self.nextToken()  # consume :
@@ -505,12 +505,21 @@ class Parser:
                         if self.statements():
                             self.skip_spaces_and_nl()
                             #Backpatch the jumps of false conditions to the end of the block
-                            self.generated_program.backPatch(jumps, self.generated_program.quad_counter)
+                            self.generated_program.backPatch(jumps, self.generated_program.quad_counter+1)
+
+                            #FIXME
+                            #Add am empty jump for the case that if condition was true
+                            #Backpatch after else statement is done
+                            self.generated_program.genQuad("jump", "_", "_", "_")
+                            if_jump = [self.generated_program.getLastQuad()]
+
                             while self.elifStat():  # check for elif statements
                                 self.skip_spaces_and_nl()
-                                pass
+
                             self.skip_spaces_and_nl()
                             self.elseStat()
+                            self.generated_program.backPatch(if_jump, self.generated_program.quad_counter)
+                            print("IF JUMP was backpatched to", self.generated_program.quad_counter)
                             return True
                         else:
                             self.error("Missing statements after if", self.currentToken)
@@ -1001,7 +1010,7 @@ class QuadList:
 
     def __init__(self):
         self.programList = []
-        self.quad_counter = 99
+        self.quad_counter = 1
 
     def __str__(self):
         print("Program list:")
