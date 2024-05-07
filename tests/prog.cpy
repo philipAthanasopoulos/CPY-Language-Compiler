@@ -11,9 +11,7 @@ while a+b<1 and b<5:
         if t==2:
             c=4
         else:
-            #{
             c=0
-            #}
         #}
     while a <1 :
     #{

@@ -271,6 +271,8 @@ class Parser:
 
             if res: print("Found block")
 
+        self.nextToken() # consume }
+
         return res
 
     def declarations(self):
@@ -507,7 +509,6 @@ class Parser:
                             self.block()
                         else:
                             self.statement()
-                        self.nextToken()
                         #Backpatch the jumps of false conditions to the end of the block
                         self.generated_program.backPatch(jumps, self.generated_program.quad_counter+1)
 
@@ -592,19 +593,12 @@ class Parser:
                     self.nextToken()
                     self.skip_spaces_and_nl()
                     if self.currentToken.recognizedString == '#{':
-                        self.nextToken()
+                        self.nextToken() # consume {
                         self.skip_spaces_and_nl()
-                        if self.statements():
-                            self.skip_spaces_and_nl()
-                            if self.currentToken.recognizedString == '#}':
-                                self.nextToken()
-                                return True
-                            else:
-                                self.error("Missing closing block", self.currentToken)
-                        else:
-                            self.error("Missing statement after else", self.currentToken)
+                        self.block()
                     else:
-                        self.error("Missing opening block", self.currentToken)
+                        self.statement()
+                    return True
                 else:
                     self.error("Missing new line after else", self.currentToken)
             else:
