@@ -504,39 +504,35 @@ class Parser:
                         self.skip_spaces_and_nl()
                         if self.currentToken.recognizedString == '#{':
                             self.nextToken()
-                            if self.statements():
-                                self.skip_spaces_and_nl()
-                                if self.currentToken.recognizedString == '#}':
-                                    self.nextToken()
-                                    #Backpatch the jumps of false conditions to the end of the block
-                                    self.generated_program.backPatch(jumps, self.generated_program.quad_counter+1)
-
-                                    #FIXME
-                                    #Add am empty jump for the case that if condition was true
-                                    #Backpatch after else statement is done
-                                    self.generated_program.genQuad("jump", "_", "_", "_")
-                                    if_jump = [self.generated_program.getLastQuad()]
-
-                                    while self.elifStat():  # check for elif statements
-                                        self.skip_spaces_and_nl()
-
-                                    self.skip_spaces_and_nl()
-                                    self.elseStat()
-                                    self.generated_program.backPatch(if_jump, self.generated_program.quad_counter)
-                                    print("IF JUMP was backpatched to", self.generated_program.quad_counter)
-                                    return True
-                                else:
-                                    self.error("Missing closing block", self.currentToken)
-                            else:
-                                self.error("Missing statements after if", self.currentToken)
+                            self.block()
                         else:
-                            self.error("Missing opening block", self.currentToken)
+                            self.statement()
+                        self.nextToken()
+                        #Backpatch the jumps of false conditions to the end of the block
+                        self.generated_program.backPatch(jumps, self.generated_program.quad_counter+1)
+
+                        #FIXME
+                        #Add am empty jump for the case that if condition was true
+                        #Backpatch after else statement is done
+                        self.generated_program.genQuad("jump", "_", "_", "_")
+                        if_jump = [self.generated_program.getLastQuad()]
+
+                        while self.elifStat():  # check for elif statements
+                            self.skip_spaces_and_nl()
+
+                        self.skip_spaces_and_nl()
+                        self.elseStat()
+                        self.generated_program.backPatch(if_jump, self.generated_program.quad_counter)
+                        print("IF JUMP was backpatched to", self.generated_program.quad_counter)
+                        return True
                     else:
                         self.error("Missing new line after if", self.currentToken)
                 else:
                     self.error("Missing ':' after if", self.currentToken)
         else:
             self.error("Syntax error near 'if' statement", self.currentToken)
+
+
 
     def elifStat(self):
         print("Checking for elif statement")
