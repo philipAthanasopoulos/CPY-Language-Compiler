@@ -271,7 +271,7 @@ class Parser:
                 res = True
                 print("Finished main")
 
-            if res: print("Found block" , self.currentToken.recognizedString)
+            if res: print("Found block", self.currentToken.recognizedString)
 
         return res
 
@@ -339,6 +339,7 @@ class Parser:
         print("Looking for subprogram")
         self.skip_spaces_and_nl()
         if self.currentToken.recognizedString == 'def':
+            self.symbolTable.newScope()
             self.nextToken()
             if self.currentToken.family is WHITE_SPACE:
                 self.nextToken()
@@ -413,6 +414,9 @@ class Parser:
 
     def formalparitem(self):
         if self.currentToken.family is ID_KW:
+            self.symbolTable.getLowerScope().addEntity(
+                FormalParameter(self.currentToken.recognizedString, "int", "CV")
+            )
             self.nextToken()  # consume ID
             return True
         return False
@@ -1169,13 +1173,13 @@ class Table:
     # TODO create methods
     def __init__(self):
         self.scopeList = []
+        self.scopeList.append(Scope(0))
+
+    def getLowerScope(self):
+        return self.scopeList[-1]
 
     def __str__(self):
-        print("Symbol Table")
-        for scopeItem in self.scopeList:
-            print("Scope: ", scopeItem.level)
-            for entity in scopeItem.entityList:
-                print(entity)
+        return "\n".join(str(scope.level) + " " + str(entity) for scope in self.scopeList for entity in scope.entityList)
 
     # def addEntity(self, entity, scope):
     #     scope.addEntity(entity)
@@ -1194,6 +1198,9 @@ class Table:
 
     def searchEntity(self, entity):
         pass
+
+    def newScope(self):
+        self.addScope(Scope(len(self.scopeList)))
 
 
 # test symbol table
@@ -1224,5 +1231,4 @@ if not lex.errors:
     lex.printTokenList()
     parser = Parser(lex.tokenList)
     print(parser.generated_program)
-
-
+    print(parser.symbolTable)
