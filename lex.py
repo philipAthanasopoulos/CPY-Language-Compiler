@@ -218,6 +218,7 @@ class Parser:
         self.generated_program = QuadList()
         print("Started syntax analysis")
         self.temp_counter = 0
+        self.symbolTable = Table()
         self.analyze()
 
     def newTemp(self):
@@ -248,6 +249,7 @@ class Parser:
 
         self.skip_spaces_and_nl()
         if self.currentToken.recognizedString == '#}':
+            self.nextToken()  # consume } lol
             return True
 
         while self.currentToken.recognizedString != '#}' and self.hasTokens():
@@ -269,9 +271,7 @@ class Parser:
                 res = True
                 print("Finished main")
 
-            if res: print("Found block")
-
-        self.nextToken()  # consume }
+            if res: print("Found block" , self.currentToken.recognizedString)
 
         return res
 
