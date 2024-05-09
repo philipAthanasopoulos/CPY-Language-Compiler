@@ -310,6 +310,7 @@ class Parser:
             self.error("Syntax error near variable declaration, missing variable name", self.currentToken)
             return False
         while self.currentToken.family is ID_KW:
+            self.symbolTable.getLowerScope().addEntity(Variable(self.currentToken.recognizedString, "int", self.symbolTable.getLowerScope().offset))
             print("Reading variable", self.currentToken.recognizedString)
             self.nextToken()  # consume ID
             self.consume_white_spaces()
@@ -1179,7 +1180,8 @@ class Table:
         return self.scopeList[-1]
 
     def __str__(self):
-        return "\n".join(str(scope.level) + " " + str(entity) for scope in self.scopeList for entity in scope.entityList)
+        return "\n".join(
+            str(scope.level) + " " + str(entity) for scope in self.scopeList for entity in scope.entityList)
 
     # def addEntity(self, entity, scope):
     #     scope.addEntity(entity)
