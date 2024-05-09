@@ -271,7 +271,7 @@ class Parser:
 
             if res: print("Found block")
 
-        self.nextToken() # consume }
+        self.nextToken()  # consume }
 
         return res
 
@@ -493,9 +493,10 @@ class Parser:
             start_index = len(self.generated_program.programList)
             if self.condition():
                 quads = self.generated_program.programList[start_index:self.generated_program.quad_counter]
-                conds = [quads for quads in quads if quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
+                conds = [quads for quads in quads if
+                         quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
                 self.generated_program.backPatch(conds, self.generated_program.quad_counter)
-                #Keep the jumps to backpatch them later
+                # Keep the jumps to backpatch them later
                 jumps = [quads for quads in quads if quads.op0 == 'jump' and quads.op3 == '_']
                 self.consume_white_spaces()
                 if self.currentToken.recognizedString == ':':
@@ -509,12 +510,12 @@ class Parser:
                             self.block()
                         else:
                             self.statement()
-                        #Backpatch the jumps of false conditions to the end of the block
-                        self.generated_program.backPatch(jumps, self.generated_program.quad_counter+1)
+                        # Backpatch the jumps of false conditions to the end of the block
+                        self.generated_program.backPatch(jumps, self.generated_program.quad_counter + 1)
 
-                        #FIXME
-                        #Add am empty jump for the case that if condition was true
-                        #Backpatch after else statement is done
+                        # FIXME
+                        # Add am empty jump for the case that if condition was true
+                        # Backpatch after else statement is done
                         self.generated_program.genQuad("jump", "_", "_", "_")
                         if_jump = [self.generated_program.getLastQuad()]
 
@@ -533,22 +534,22 @@ class Parser:
         else:
             self.error("Syntax error near 'if' statement", self.currentToken)
 
-
-
     def elifStat(self):
         print("Checking for elif statement")
         print(self.currentToken)
+        self.skip_spaces_and_nl()  # hihi
         if self.currentToken.recognizedString == 'elif':
             print("Found elif statement")
             self.nextToken()  # consume elif
             self.consume_white_spaces()
-            #Same logic with if statement
+            # Same logic with if statement
             start_index = len(self.generated_program.programList)
             if self.condition():
                 quads = self.generated_program.programList[start_index:self.generated_program.quad_counter]
-                conds = [quads for quads in quads if quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
+                conds = [quads for quads in quads if
+                         quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
                 self.generated_program.backPatch(conds, self.generated_program.quad_counter)
-                #Keep the jumps to backpatch them later
+                # Keep the jumps to backpatch them later
                 jumps = [quads for quads in quads if quads.op0 == 'jump']
                 self.consume_white_spaces()
                 if self.currentToken.recognizedString == ':':
@@ -558,26 +559,21 @@ class Parser:
                         self.nextToken()  # consume new line
                         self.skip_spaces_and_nl()
                         if self.currentToken.recognizedString == '#{':
-                            if self.statements():
-                                self.skip_spaces_and_nl()
-                                if self.currentToken.recognizedString == '#}':
-                                    self.nextToken()
-                                    #Backpatch the jumps of false conditions to the end of the block
-                                    self.generated_program.backPatch(jumps, self.generated_program.quad_counter)
-                                    return True
-                                else:
-                                    self.error("Missing closing block", self.currentToken)
-                            else:
-                                self.error("Missing statements after elif", self.currentToken)
+                            self.nextToken()
+                            self.skip_spaces_and_nl()
+                            self.block()
                         else:
-                            self.error("Missing opening block", self.currentToken)
+                            self.statement()
+
+                        # Backpatch the jumps of false conditions to the end of the block
+                        self.generated_program.backPatch(jumps, self.generated_program.quad_counter)
+                        return True
                     else:
                         self.error("Missing new line after condition", self.currentToken)
                 else:
                     self.error("Missing ':' after condition", self.currentToken)
             else:
                 self.error("Missing condition after elif", self.currentToken)
-
         return False
 
     def elseStat(self):
@@ -593,7 +589,7 @@ class Parser:
                     self.nextToken()
                     self.skip_spaces_and_nl()
                     if self.currentToken.recognizedString == '#{':
-                        self.nextToken() # consume {
+                        self.nextToken()  # consume {
                         self.skip_spaces_and_nl()
                         self.block()
                     else:
@@ -615,17 +611,18 @@ class Parser:
         self.nextToken()  # consume while
         if self.currentToken.family is WHITE_SPACE:
             self.consume_white_spaces()
-            #get tokens of condition
+            # get tokens of condition
             start_index = len(self.generated_program.programList)
             if self.condition():
                 print("Found while condition")
-                #Those are the condition quads
+                # Those are the condition quads
                 quads = self.generated_program.programList[start_index:self.generated_program.quad_counter]
-                #Backpatch the true values to get into the block
-                conds = [quads for quads in quads if quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
+                # Backpatch the true values to get into the block
+                conds = [quads for quads in quads if
+                         quads.op0 in ['<', '>', '==', '!=', '>=', '<='] and quads.op3 == '_']
                 self.generated_program.backPatch(conds, self.generated_program.quad_counter)
 
-                #Keep the jumps to backpatch them later
+                # Keep the jumps to backpatch them later
                 jumps = [quads for quads in quads if quads.op0 == 'jump']
 
                 self.consume_white_spaces()
@@ -640,9 +637,9 @@ class Parser:
                             if self.statements():
                                 self.skip_spaces_and_nl()
                                 if self.currentToken.recognizedString == '#}':
-                                    #Add jump to the beginning of the block
+                                    # Add jump to the beginning of the block
                                     self.generated_program.genQuad("jump", "_", "_", str(quads[0].label))
-                                    #Backpatch the jumps of false conditions to the end of the block
+                                    # Backpatch the jumps of false conditions to the end of the block
                                     self.generated_program.backPatch(jumps, self.generated_program.quad_counter)
                                     self.nextToken()
                                     return True
@@ -717,7 +714,6 @@ class Parser:
                     self.error("missing 'input' keyword", self.currentToken)
             else:
                 self.error("missing '(' before 'input'", self.currentToken)
-
         return False
 
     def actualparlist(self):
@@ -1088,6 +1084,137 @@ class Quad:
             self.op3)
 
 
+### SYMBOL TABLE
+class Entity:
+    def __init__(self, name):
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+
+class Constant(Entity):
+    def __init__(self, name, datatype, value):
+        super().__init__(name)
+        self.datatype = datatype
+        self.value = value
+
+    def __str__(self):
+        return self.name + " " + self.datatype + " " + str(self.value)
+
+
+class Variable(Entity):
+    def __init__(self, name, datatype, offset):
+        super().__init__(name)
+        self.datatype = datatype
+        self.offset = offset
+
+    def __str__(self):
+        return self.name + " " + self.datatype + " " + str(self.offset)
+
+
+class FormalParameter(Entity):
+    def __init__(self, name, datatype, mode):
+        super().__init__(name)
+        self.datatype = datatype
+        self.mode = mode
+
+    def __str__(self):
+        return self.name + " " + self.datatype + " " + self.mode
+
+
+class Parameter(Variable, FormalParameter):
+    # Here Parameter uses the Variable super constructor
+    def __init__(self, name, datatype, mode, offset):
+        super().__init__(name, datatype, offset)
+        self.mode = mode
+
+    def __str__(self):
+        return self.name + " " + self.datatype + " " + self.mode + " " + str(self.offset)
+
+
+class Procedure(Entity):
+    def __init__(self, name, startingQuad, frameLength):
+        super().__init__(name)
+        self.startingQuad = startingQuad
+        self.frameLength = frameLength
+        self.parameterList = []
+
+    def __str__(self):
+        return self.name + " " + str(self.startingQuad) + " " + str(self.frameLength)
+
+
+class Function(Procedure):
+    def __init__(self, name, startingQuad, frameLength, returnType):
+        super().__init__(name, startingQuad, frameLength)
+        self.returnType = returnType
+
+    def __str__(self):
+        return self.name + " " + str(self.startingQuad) + " " + str(self.frameLength) + " " + self.returnType
+
+
+class Scope:
+    def __init__(self, level):
+        self.level = level
+        self.entityList = []
+        self.offset = 12
+
+    def addEntity(self, entity):
+        self.entityList.append(entity)
+        entity.offset = self.offset
+        self.offset += 4
+
+
+class Table:
+    # TODO create methods
+    def __init__(self):
+        self.scopeList = []
+
+    def __str__(self):
+        print("Symbol Table")
+        for scopeItem in self.scopeList:
+            print("Scope: ", scopeItem.level)
+            for entity in scopeItem.entityList:
+                print(entity)
+
+    # def addEntity(self, entity, scope):
+    #     scope.addEntity(entity)
+
+    def addScope(self, scope):
+        self.scopeList.append(scope)
+
+    def removeScope(self, scope):
+        self.scopeList.remove(scope)
+
+    def updateEntity(self):
+        pass
+
+    def addFormalParameter(self, formalParameter):
+        pass
+
+    def searchEntity(self, entity):
+        pass
+
+
+# test symbol table
+
+# table = Table()
+# scope1 = Scope(0)
+# table.addScope(scope1)
+# scope1.addEntity(Variable("a", "int", 0))
+# scope1.addEntity(Variable("b", "int", 0))
+# scope1.addEntity(Variable("c", "int", 0))
+# scope1.addEntity(Function("main", 0, 0, "int"))
+#
+# scope2 = Scope(1)
+# table.addScope(scope2)
+# scope2.addEntity(Variable("d", "int", 0))
+# scope2.addEntity(Variable("e", "int", 0))
+# scope2.addEntity(Variable("f", "int", 0))
+
+
+# table.__str__()
+
 # main part
 print("Enter the full path of the file to be compiled:")
 lex = Lex(input())
@@ -1097,3 +1224,5 @@ if not lex.errors:
     lex.printTokenList()
     parser = Parser(lex.tokenList)
     print(parser.generated_program)
+
+

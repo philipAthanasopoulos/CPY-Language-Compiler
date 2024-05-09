@@ -10,6 +10,8 @@ while a+b<1 and b<5:
         #{
         if t==2:
             c=4
+        elif t==3:
+            c=5
         else:
             c=0
         #}
