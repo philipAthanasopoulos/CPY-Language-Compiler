@@ -1,5 +1,6 @@
 # FILIPPOS ATHANASOPULOS ANTYRAS 5113
 # IOANNIS MPOUZAS 5025
+import os
 import sys
 
 NUMBERS = '0123456789'
@@ -310,7 +311,8 @@ class Parser:
             self.error("Syntax error near variable declaration, missing variable name", self.currentToken)
             return False
         while self.currentToken.family is ID_KW:
-            self.symbolTable.getLowerScope().addEntity(Variable(self.currentToken.recognizedString, "int", self.symbolTable.getLowerScope().offset))
+            self.symbolTable.getCurrentScope().addEntity(
+                Variable(self.currentToken.recognizedString, "int", self.symbolTable.getCurrentScope().offset))
             print("Reading variable", self.currentToken.recognizedString)
             self.nextToken()  # consume ID
             self.consume_white_spaces()
@@ -334,17 +336,23 @@ class Parser:
         return False
 
     def subprogram(self):
+
         print(self.currentToken)
         self.numberOfPrograms = self.numberOfPrograms + 1
         print("NUmber of programs:", self.numberOfPrograms)
         print("Looking for subprogram")
         self.skip_spaces_and_nl()
         if self.currentToken.recognizedString == 'def':
-            self.symbolTable.newScope()
+
             self.nextToken()
             if self.currentToken.family is WHITE_SPACE:
                 self.nextToken()
                 if self.currentToken.family is ID_KW:
+                    self.symbolTable.getCurrentScope().addEntity(
+                        Function(self.currentToken.recognizedString, self.generated_program.quad_counter,
+                                 "frame length", "int")
+                    )
+                    self.symbolTable.newScope()
                     block_name = self.currentToken.recognizedString
                     self.generated_program.genQuad("begin_block", block_name, "_", "_")
                     self.nextToken()
@@ -361,6 +369,8 @@ class Parser:
                                         if self.currentToken.recognizedString == '#}':
                                             self.nextToken()  # consume }
                                             self.generated_program.genQuad("end_block", block_name, "_", "_")
+                                            self.symbolTable.gotoPreviousScope()
+
                                             return True
                                         else:
                                             self.error("Syntax error, missing closing block", self.currentToken)
@@ -415,7 +425,7 @@ class Parser:
 
     def formalparitem(self):
         if self.currentToken.family is ID_KW:
-            self.symbolTable.getLowerScope().addEntity(
+            self.symbolTable.getCurrentScope().addEntity(
                 FormalParameter(self.currentToken.recognizedString, "int", "CV")
             )
             self.nextToken()  # consume ID
@@ -492,6 +502,7 @@ class Parser:
 
     def ifStat(self):
         print("Found if statement")
+        self.symbolTable.newScope()
         self.nextToken()  # consume if
         if self.currentToken.family is WHITE_SPACE:  # there should be at least one space after if statement
             self.consume_white_spaces()  # consume the rest if any
@@ -531,6 +542,7 @@ class Parser:
                         self.elseStat()
                         self.generated_program.backPatch(if_jump, self.generated_program.quad_counter)
                         print("IF JUMP was backpatched to", self.generated_program.quad_counter)
+                        self.symbolTable.gotoPreviousScope()
                         return True
                     else:
                         self.error("Missing new line after if", self.currentToken)
@@ -544,6 +556,7 @@ class Parser:
         print(self.currentToken)
         self.skip_spaces_and_nl()  # hihi
         if self.currentToken.recognizedString == 'elif':
+            self.symbolTable.newScope()
             print("Found elif statement")
             self.nextToken()  # consume elif
             self.consume_white_spaces()
@@ -572,6 +585,7 @@ class Parser:
 
                         # Backpatch the jumps of false conditions to the end of the block
                         self.generated_program.backPatch(jumps, self.generated_program.quad_counter)
+                        self.symbolTable.gotoPreviousScope()
                         return True
                     else:
                         self.error("Missing new line after condition", self.currentToken)
@@ -584,6 +598,8 @@ class Parser:
     def elseStat(self):
         print("Checking for else statement")
         if self.currentToken.recognizedString == 'else':
+            self.symbolTable.newScope()
+
             print("Found else statement")
             self.nextToken()  # consume else
             self.consume_white_spaces()
@@ -599,6 +615,7 @@ class Parser:
                         self.block()
                     else:
                         self.statement()
+                    self.symbolTable.gotoPreviousScope()
                     return True
                 else:
                     self.error("Missing new line after else", self.currentToken)
@@ -611,6 +628,7 @@ class Parser:
             self.nextToken()
 
     def whileStat(self):
+        self.symbolTable.newScope()
         print("Found while")
         print(self.currentToken)
         self.nextToken()  # consume while
@@ -639,7 +657,7 @@ class Parser:
                         if self.currentToken.recognizedString == '#{':
                             self.nextToken()  # consume {
                             self.skip_spaces_and_nl()
-                            if self.statements():
+                            if self.block():
                                 self.skip_spaces_and_nl()
                                 if self.currentToken.recognizedString == '#}':
                                     # Add jump to the beginning of the block
@@ -647,6 +665,7 @@ class Parser:
                                     # Backpatch the jumps of false conditions to the end of the block
                                     self.generated_program.backPatch(jumps, self.generated_program.quad_counter)
                                     self.nextToken()
+                                    self.symbolTable.gotoPreviousScope()
                                     return True
                                 else:
                                     self.error("Missing closing block", self.currentToken)
@@ -671,6 +690,9 @@ class Parser:
         self.nextToken()  # consume return
         self.consume_white_spaces()
         if self.expression():
+            self.symbolTable.getCurrentScope().addEntity(
+                Variable("return_var", "int", "offset")
+            )
             return True
         else:
             self.error("Missing value after return statement", self.currentToken)
@@ -1004,6 +1026,9 @@ class Parser:
             if self.currentToken.family is WHITE_SPACE:
                 self.nextToken()
                 if self.currentToken.recognizedString == 'main':
+                    self.symbolTable.getCurrentScope().addEntity(
+                        Procedure("main", self.generated_program.quad_counter, "frameLength")
+                    )
                     self.generated_program.genQuad("begin_block", "main", "_", "_")
                     self.nextToken()
                     self.consume_white_spaces()
@@ -1166,8 +1191,9 @@ class Scope:
 
     def addEntity(self, entity):
         self.entityList.append(entity)
-        entity.offset = self.offset
-        self.offset += 4
+        if hasattr(entity, 'offset'):
+            entity.offset = self.offset
+            self.offset += 4
 
 
 class Table:
@@ -1175,16 +1201,18 @@ class Table:
     def __init__(self):
         self.scopeList = []
         self.scopeList.append(Scope(0))
+        self.currentScope = self.scopeList[0]
 
-    def getLowerScope(self):
-        return self.scopeList[-1]
+    def getCurrentScope(self):
+        return self.currentScope
+
+    def gotoPreviousScope(self):
+        self.currentScope = self.scopeList[self.scopeList.index(self.currentScope) - 1]
+        print("\033[32m ", "Went back to scope ", self.currentScope.level, "\033[0m ")
 
     def __str__(self):
         return "\n".join(
             str(scope.level) + " " + str(entity) for scope in self.scopeList for entity in scope.entityList)
-
-    # def addEntity(self, entity, scope):
-    #     scope.addEntity(entity)
 
     def addScope(self, scope):
         self.scopeList.append(scope)
@@ -1201,8 +1229,13 @@ class Table:
     def searchEntity(self, entity):
         pass
 
+    #TODO
+    #FIXME
+    #scope level
     def newScope(self):
         self.addScope(Scope(len(self.scopeList)))
+        print("\033[32m ", "Created scope", len(self.scopeList) - 1, "\033[0m")
+        self.currentScope = self.scopeList[-1]
 
 
 # test symbol table
@@ -1224,8 +1257,8 @@ class Table:
 
 # table.__str__()
 
-# main part
 print("Enter the full path of the file to be compiled:")
+# main part
 lex = Lex(input())
 lex.readFile()
 
@@ -1234,3 +1267,10 @@ if not lex.errors:
     parser = Parser(lex.tokenList)
     print(parser.generated_program)
     print(parser.symbolTable)
+    print(len(parser.symbolTable.scopeList))
+
+    with open(lex.fileToRead.name.replace('.cpy','') + '.int', 'w') as f:
+        f.write(str(parser.generated_program))
+
+    with open(lex.fileToRead.name.replace('.cpy','') +'.sym', 'w') as f:
+        f.write(str(parser.symbolTable))

@@ -1,0 +1,45 @@
+0 counterFunctionCalls int 12
+0 counterFunction int 16
+0 counter int 20
+0 max3 1 frame length int
+1 x int CV
+1 y int CV
+1 z int CV
+1 m int 12
+1 counterFunctionCalls int 16
+1 fib 17 frame length int
+2 return_var int 12
+5 x int CV
+5 counterFunctionCalls int 12
+5 isPrime 38 frame length int
+6 return_var int 12
+7 return_var int 12
+8 return_var int 12
+9 x int CV
+9 i int 12
+9 divides 39 frame length int
+9 counterFunctionCalls int 16
+10 x int CV
+10 y int CV
+10 counterFunctionCalls int 12
+11 return_var int 12
+11 quad 64 frame length int
+12 return_var int 12
+12 return_var int 16
+14 return_var int 12
+14 leap 81 frame length int
+15 x int CV
+15 y int 12
+15 sqr 65 frame length int
+15 counterFunctionCalls int 16
+15 return_var int 20
+16 x int CV
+16 counterFunctionCalls int 12
+16 return_var int 16
+17 year int CV
+17 counterFunctionCalls int 12
+17 main 99 frameLength
+17 i int 16
+18 return_var int 12
+19 return_var int 12
+20 return_var int 12
