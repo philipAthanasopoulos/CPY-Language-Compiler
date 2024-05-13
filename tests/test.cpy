@@ -124,5 +124,4 @@ while i<=12:
 
 a = 1-4-2-1-31-12-3-1-23
 
-print(counterFunctionCalls)
 

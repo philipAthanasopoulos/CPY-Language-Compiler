@@ -1184,8 +1184,9 @@ class Function(Procedure):
 
 
 class Scope:
-    def __init__(self, level):
+    def __init__(self, level, parent):
         self.level = level
+        self.parent = parent
         self.entityList = []
         self.offset = 12
 
@@ -1200,14 +1201,14 @@ class Table:
     # TODO create methods
     def __init__(self):
         self.scopeList = []
-        self.scopeList.append(Scope(0))
+        self.scopeList.append(Scope(0, None))
         self.currentScope = self.scopeList[0]
 
     def getCurrentScope(self):
         return self.currentScope
 
     def gotoPreviousScope(self):
-        self.currentScope = self.scopeList[self.scopeList.index(self.currentScope) - 1]
+        self.currentScope = self.currentScope.parent
         print("\033[32m ", "Went back to scope ", self.currentScope.level, "\033[0m ")
 
     def __str__(self):
@@ -1229,33 +1230,11 @@ class Table:
     def searchEntity(self, entity):
         pass
 
-    #TODO
-    #FIXME
-    #scope level
     def newScope(self):
-        self.addScope(Scope(len(self.scopeList)))
+        self.addScope(Scope(len(self.scopeList), self.getCurrentScope()))
         print("\033[32m ", "Created scope", len(self.scopeList) - 1, "\033[0m")
         self.currentScope = self.scopeList[-1]
 
-
-# test symbol table
-
-# table = Table()
-# scope1 = Scope(0)
-# table.addScope(scope1)
-# scope1.addEntity(Variable("a", "int", 0))
-# scope1.addEntity(Variable("b", "int", 0))
-# scope1.addEntity(Variable("c", "int", 0))
-# scope1.addEntity(Function("main", 0, 0, "int"))
-#
-# scope2 = Scope(1)
-# table.addScope(scope2)
-# scope2.addEntity(Variable("d", "int", 0))
-# scope2.addEntity(Variable("e", "int", 0))
-# scope2.addEntity(Variable("f", "int", 0))
-
-
-# table.__str__()
 
 print("Enter the full path of the file to be compiled:")
 # main part
