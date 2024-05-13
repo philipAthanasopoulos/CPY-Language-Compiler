@@ -693,6 +693,8 @@ class Parser:
             self.symbolTable.getCurrentScope().addEntity(
                 Variable("return_var", "int", "offset")
             )
+            name_of_var_to_return = self.tokenList[self.tokenIndex - 1].recognizedString
+            self.generated_program.genQuad("ret", name_of_var_to_return, "_", "_")
             return True
         else:
             self.error("Missing value after return statement", self.currentToken)
