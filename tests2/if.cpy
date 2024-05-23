@@ -1,6 +1,18 @@
+
+
+#def main
+#int a ,b
 if a>b:
-    b = b+1
+    #{
+        #int a
+        b = b -1
+        #}
+
 elif a>b:
-    b = b -1
+    a = 1
+
 else:
-    b = 1
+    #{
+        #int a
+        b = b -1
+        #}

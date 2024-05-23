@@ -523,7 +523,6 @@ class Parser:
                         self.skip_spaces_and_nl()
                         if self.currentToken.recognizedString == '#{':
                             self.nextToken()
-                            self.skip_spaces_and_nl()
                             self.block()
                         else:
                             self.statement()
@@ -557,9 +556,9 @@ class Parser:
         print(self.currentToken)
         self.skip_spaces_and_nl()  # hihi
         if self.currentToken.recognizedString == 'elif':
-            self.nextToken()  # consume elif
             self.symbolTable.newScope()
             print("Found elif statement")
+            self.nextToken()  # consume elif
             self.consume_white_spaces()
             # Same logic with if statement
             start_index = len(self.generated_program.programList)
