@@ -1,6 +1,5 @@
 # FILIPPOS ATHANASOPULOS ANTYRAS 5113
 # IOANNIS MPOUZAS 5025
-import os
 import sys
 
 NUMBERS = '0123456789'
@@ -1033,6 +1032,8 @@ class Parser:
                         Procedure("main", self.generated_program.quad_counter, "frameLength")
                     )
                     self.generated_program.genQuad("begin_block", "main", "_", "_")
+                    #add jump at the very beginning of the program
+                    self.generated_program.programList.insert(0, Quad(0, "jump", "_", "_", self.generated_program.programList[-1].label))
                     self.nextToken()
                     self.consume_white_spaces()
                     if self.currentToken.family is NL:
@@ -1238,6 +1239,39 @@ class Table:
         self.currentScope = self.scopeList[-1]
 
 
+class Assembler:
+    def __init__(self, quad_list, symbol_table):
+        self.symbol_table = symbol_table
+        self.quad_list = quad_list
+        self.file = open('finalCode.asm', "w")
+
+    def gnlvoce(self, variable_name):
+        pass
+
+    def loadvr(self, variable_name, register):
+        pass
+
+    def storerv(self, variable_name, register):
+        pass
+
+    def generate_final_code(self):
+        for index, quad in enumerate(self.quad_list):
+            self.file.write("L" + str(index) + ":\n")
+
+            if quad.label == 0 and quad.op0 == "jump":
+                self.file.write("   j Lmain\n\n")
+
+            if quad.op0 == "end_block":
+                self.file.write("   lw ra,(sp)\n")
+                self.file.write("   jr ra\n\n")
+
+            if quad.op0 == "begin_block" and quad.op1 != "main":
+                self.file.write("   sw ra,(sp)\n\n")
+
+            if quad.op1 == "main":
+                self.file.write("Lmain:\n\n")
+
+
 print("Enter the full path of the file to be compiled:")
 # main part
 lex = Lex(input())
@@ -1250,8 +1284,12 @@ if not lex.errors:
     print(parser.symbolTable)
     print(len(parser.symbolTable.scopeList))
 
-    with open(lex.fileToRead.name.replace('.cpy','') + '.int', 'w') as f:
+    # create final code
+    assembler = Assembler(parser.generated_program.programList, parser.symbolTable)
+    assembler.generate_final_code()
+
+    with open(lex.fileToRead.name.replace('.cpy', '') + '.int', 'w') as f:
         f.write(str(parser.generated_program))
 
-    with open(lex.fileToRead.name.replace('.cpy','') +'.sym', 'w') as f:
+    with open(lex.fileToRead.name.replace('.cpy', '') + '.sym', 'w') as f:
         f.write(str(parser.symbolTable))
