@@ -1032,8 +1032,9 @@ class Parser:
                         Procedure("main", self.generated_program.quad_counter, "frameLength")
                     )
                     self.generated_program.genQuad("begin_block", "main", "_", "_")
-                    #add jump at the very beginning of the program
-                    self.generated_program.programList.insert(0, Quad(0, "jump", "_", "_", self.generated_program.programList[-1].label))
+                    # add jump at the very beginning of the program
+                    self.generated_program.programList.insert(0, Quad(0, "jump", "_", "_",
+                                                                      self.generated_program.programList[-1].label))
                     self.nextToken()
                     self.consume_white_spaces()
                     if self.currentToken.family is NL:
@@ -1256,10 +1257,69 @@ class Assembler:
 
     def generate_final_code(self):
         for index, quad in enumerate(self.quad_list):
-            self.file.write("L" + str(index) + ":\n")
+            if quad.op1 == "main":
+                self.file.write("Lmain:\n")
+            else:
+                self.file.write("L" + str(index) + ":\n")
+            if quad.op0 == "halt":
+                self.file.write("exit:\n")
+                self.file.write("   li a0,0\n")
+                self.file.write("   li a7,93\n")
+                self.file.write("   ecall\n\n")
 
-            if quad.label == 0 and quad.op0 == "jump":
-                self.file.write("   j Lmain\n\n")
+            if quad.op0 == 'jump':
+                if quad.label == 0:
+                    self.file.write("   j Lmain\n\n")
+                else:
+                    self.file.write("   j L" + str(quad.op3) + "\n\n")
+
+            if quad.op0 in ['+', '-', '//', '*']:
+                self.file.write("   lw t1, something\n")
+                self.file.write("   lw t2, something\n")
+
+                if quad.op0 == '+':
+                    self.file.write("   addi t3,t1,t2\n")
+                elif quad.op0 == '-':
+                    self.file.write("   sub t3,t1,t2\n")
+                elif quad.op0 == '*':
+                    self.file.write("   mul t3,t1,t2\n")
+                else:
+                    self.file.write("   div t3,t1,t2\n")
+
+                self.file.write("   sw t3, something\n\n")
+
+            if quad.op0 in ['>', '<', '==', '!=', '>=', '<=']:
+                self.file.write("   lw t1, something\n")
+                self.file.write("   lw t2, something\n")
+
+                if quad.op0 == '>':
+                    self.file.write("   blt t1,t2,L" + str(quad.label) + "\n")
+                elif quad.op0 == '<':
+                    self.file.write("   bgt t1,t2,L" + str(quad.label) + "\n")
+                elif quad.op0 == '==':
+                    self.file.write("   bne t1,t2,L" + str(quad.label) + "\n")
+                elif quad.op0 == '!=':
+                    self.file.write("   beq t1,t2,L" + str(quad.label) + "\n")
+                elif quad.op0 == '>=':
+                    self.file.write("   blt t1,t2,L" + str(quad.label) + "\n")
+                else:
+                    self.file.write("   bgt t1,t2,L" + str(quad.label) + "\n")
+
+            if quad.op0 == 'ret':
+                if quad.op1.isdigit():
+                    self.file.write("   li t1," + quad.op1 + "\n")
+                else:
+                    self.file.write("   lw t1,something\n")
+                self.file.write("    lw t0,something")
+                self.file.write("    sw t1,(t0))")
+
+
+
+            if quad.op0 == "call":
+                self.file.write("    sw sp, something\n")
+                self.file.write("    addi sp,sp,framelength\n")
+                self.file.write("    jal on_a_label\n")
+                self.file.write("    addi sp,sp, -framelength\n")
 
             if quad.op0 == "end_block":
                 self.file.write("   lw ra,(sp)\n")
@@ -1268,8 +1328,16 @@ class Assembler:
             if quad.op0 == "begin_block" and quad.op1 != "main":
                 self.file.write("   sw ra,(sp)\n\n")
 
-            if quad.op1 == "main":
-                self.file.write("Lmain:\n\n")
+            if quad.op0 == ":=":
+                if quad.op1.isdigit():
+                    self.file.write("   li t1," + quad.op1 + "\n")
+                else:
+                    self.file.write("    lw t1,something")
+                self.file.write("   sw t1," + "something" "\n\n")
+
+            if quad.op0 == "begin_block" and quad.op1 == "main":
+                self.file.write("   addi sp,sp,framelength\n")
+                self.file.write("   mv gp,sp\n\n")
 
 
 print("Enter the full path of the file to be compiled:")
